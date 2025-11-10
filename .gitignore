@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE/editor
+.vscode/
+.idea/
+*.iml
+
+# Django
+db.sqlite3
+/media/
+media/
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Byte-compiled / pip
+pip-wheel-metadata/
