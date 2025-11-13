@@ -1,31 +1,69 @@
-# Python
+###############################
+# PYTHON / DJANGO
+###############################
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.egg-info/
-dist/
-build/
-
-# Virtual environment
+*.env
+*.venv
 venv/
 env/
-.venv/
-
-# IDE/editor
-.vscode/
-.idea/
-*.iml
-
-# Django
+ENV/
 db.sqlite3
-/media/
-media/
 *.log
 
-# OS files
-Thumbs.db
-.DS_Store
+# Django static & media (generated)
+staticfiles/
+media/
 
-# Byte-compiled / pip
-pip-wheel-metadata/
+# PyInstaller / PyQt build folders
+build/
+dist/
+*.spec
+
+###############################
+# JAVASCRIPT / REACT FRONTEND
+###############################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+bun.lockb
+
+# Build outputs
+dist/
+build/
+.vite/
+.next/
+
+###############################
+# WEB FRONTEND (your project)
+###############################
+# Ignore environment files
+*.env.local
+*.env.development
+*.env.production
+*.env.test
+
+# React cache
+.cache/
+.eslintcache
+
+###############################
+# EDITORS / OS / MISC
+###############################
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+###############################
+# OPTIONAL LARGE FILE IGNORES
+###############################
+*.csv
+*.xlsx
+*.zip

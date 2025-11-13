@@ -76,11 +76,12 @@ MIDDLEWARE = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',   # TokenAuth for API clients
+        'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication', # enables login via admin or browsable API
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        #'rest_framework.permissions.IsAuthenticated',         # require auth by default
-        'rest_framework.permissions.AllowAny',                # allow unrestricted access by default
+        'rest_framework.permissions.IsAuthenticated',         # require auth by default
+        #'rest_framework.permissions.AllowAny',                # allow unrestricted access by default
     )
 }
 

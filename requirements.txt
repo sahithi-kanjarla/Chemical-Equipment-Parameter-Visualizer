@@ -4,3 +4,8 @@ django-cors-headers
 pandas
 reportlab
 python-magic==0.4.25
+
+pyqt5
+matplotlib
+requests
+pandas
