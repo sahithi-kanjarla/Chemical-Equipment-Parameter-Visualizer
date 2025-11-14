@@ -5,11 +5,15 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.env
-*.venv
+
+# Virtual envs
+.env
+.venv
 venv/
 env/
 ENV/
+
+# Local DB / logs
 db.sqlite3
 *.log
 
@@ -32,14 +36,12 @@ yarn-error.log*
 .pnpm-store/
 bun.lockb
 
-# Build outputs
-dist/
-build/
+# Build outputs (frontend)
 .vite/
 .next/
 
 ###############################
-# WEB FRONTEND (your project)
+# WEB FRONTEND (env files)
 ###############################
 # Ignore environment files
 *.env.local
@@ -64,6 +66,7 @@ Thumbs.db
 ###############################
 # OPTIONAL LARGE FILE IGNORES
 ###############################
-*.csv
-*.xlsx
-*.zip
+# Uncomment if you don't want to commit example datasets / exports
+# *.csv
+# *.xlsx
+# *.zip

@@ -1,38 +1,38 @@
 # api/views.py
 import io
 import logging
+from datetime import datetime
+
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
 import pandas as pd
-
 from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import UploadedDataset
-from .serializers import UploadedDatasetSerializer
-
-# PDF generation (ReportLab)
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
-# Matplotlib for chart rendering (non-GUI backend)
+# Matplotlib (non-GUI backend)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+from .models import UploadedDataset
+from .serializers import UploadedDatasetSerializer
+
 logger = logging.getLogger(__name__)
 
 
-def create_chart_image(summary, chart_type='bar'):
+def create_chart_image(summary, chart_type='bar', width_inches=8, height_inches=3.5, dpi=100):
     """
-    Creates a matplotlib chart from `summary` and returns a BytesIO containing PNG image.
-    Improved layout: wider figure, rotated ticks, smaller tick fonts, tight_layout with padding.
+    Create a PNG image BytesIO of a chart from 'summary' (type_distribution or numeric averages).
+    Returns BytesIO (seeked to 0) or None on failure.
     """
     buf = io.BytesIO()
     try:
@@ -40,8 +40,19 @@ def create_chart_image(summary, chart_type='bar'):
         labels = list(type_dist.keys())
         counts = [type_dist.get(k, 0) for k in labels]
 
-        # make figure wider so labels have space
-        plt.figure(figsize=(8, 3.5), dpi=100)
+        # fallback numeric values for histogram
+        if chart_type == 'hist':
+            nums = []
+            avgs = (summary or {}).get('averages', {}) or {}
+            for v in avgs.values():
+                if v is not None:
+                    nums.append(v)
+            if not nums:
+                nums = counts
+        else:
+            nums = None
+
+        plt.figure(figsize=(width_inches, height_inches), dpi=dpi)
 
         if chart_type == 'bar':
             plt.bar(labels, counts)
@@ -50,23 +61,19 @@ def create_chart_image(summary, chart_type='bar'):
             plt.xticks(rotation=45, ha='right', fontsize=9)
         elif chart_type == 'pie':
             if sum(counts) == 0:
-                plt.text(0.5, 0.5, 'No data', ha='center')
+                plt.text(0.5, 0.5, 'No data', ha='center', va='center')
             else:
-                plt.pie(counts, labels=labels, autopct='%1.0f%%')
-                plt.title('Type Distribution (%)')
+                # draw pie without long labels on wedges; legend handles labels
+                wedges, texts, autotexts = plt.pie(counts, labels=None, autopct='%1.0f%%', startangle=90, textprops={'fontsize': 8})
+                plt.legend(wedges, [str(s) for s in labels], title="Type", loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=8)
+                plt.axis('equal')
+            plt.title('Type Distribution (%)')
         elif chart_type == 'line':
             plt.plot(labels, counts, marker='o')
             plt.title('Type counts (line)')
             plt.ylabel('Count')
             plt.xticks(rotation=45, ha='right', fontsize=9)
         elif chart_type == 'hist':
-            nums = []
-            avgs = (summary or {}).get('averages', {}) or {}
-            for v in avgs.values():
-                if v is not None:
-                    nums.append(v)
-            if not nums:
-                nums = counts
             if nums:
                 plt.hist(nums, bins=min(10, max(1, len(nums))), edgecolor='black')
                 plt.title('Histogram (numeric values)')
@@ -80,19 +87,24 @@ def create_chart_image(summary, chart_type='bar'):
             plt.ylabel('Count')
             plt.xticks(rotation=45, ha='right', fontsize=9)
 
-        # tighten layout and save with tight bbox
         plt.tight_layout(pad=0.4)
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.1)
         plt.close()
         buf.seek(0)
+
+        # ensure we have something
+        if buf.getbuffer().nbytes == 0:
+            return None
         return buf
+
     except Exception:
+        logger.exception("create_chart_image failed")
         try:
             plt.close()
         except Exception:
             pass
-        logger.exception("create_chart_image failed")
         return None
+
 
 def api_root(request):
     """
@@ -122,7 +134,9 @@ class UploadCSVView(APIView):
         filename = uploaded_file.name
 
         try:
-            # Read CSV into pandas (uploaded_file is file-like)
+            # Read CSV into pandas
+            # read as binary then let pandas parse
+            uploaded_file.seek(0)
             df = pd.read_csv(uploaded_file)
         except Exception as e:
             logger.exception("Failed to read CSV on upload: %s", e)
@@ -135,7 +149,7 @@ class UploadCSVView(APIView):
         required = {'Equipment Name', 'Type', 'Flowrate', 'Pressure', 'Temperature'}
         if not required.issubset(set(df.columns)):
             return Response({
-                "detail": f"CSV missing required columns. Required: {required}. Found: {list(df.columns)}"
+                "detail": f"CSV missing required columns. Required: {sorted(required)}. Found: {list(df.columns)}"
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Coerce numeric columns
@@ -160,11 +174,10 @@ class UploadCSVView(APIView):
             per_type_avgs = {}
             for col in numeric_cols:
                 grouped = df.groupby('Type')[col].mean()
-                # convert to plain python floats / None
                 per_type_avgs[col] = {str(k): (float(v) if not pd.isna(v) else None) for k, v in grouped.to_dict().items()}
             summary['per_type_averages'] = per_type_avgs
         except Exception:
-            # if something goes wrong, ensure key exists and keep going
+            logger.exception("Failed computing per_type_averages")
             summary['per_type_averages'] = {}
 
         # prepare preview rows (first up to 8 rows) as list of dicts
@@ -175,31 +188,37 @@ class UploadCSVView(APIView):
 
         # Save file contents to model (store original bytes)
         try:
-            if hasattr(uploaded_file, 'seek'):
-                uploaded_file.seek(0)
+            uploaded_file.seek(0)
         except Exception:
             pass
 
-        content = uploaded_file.read()
-        django_file = ContentFile(content, name=filename)
-
-        obj = UploadedDataset.objects.create(
-            original_filename=filename,
-            csv_file=django_file,
-            summary=summary
-        )
+        try:
+            content = uploaded_file.read()
+            django_file = ContentFile(content, name=filename)
+            obj = UploadedDataset.objects.create(
+                original_filename=filename,
+                csv_file=django_file,
+                summary=summary
+            )
+        except Exception as e:
+            logger.exception("Failed to save UploadedDataset: %s", e)
+            return Response({"detail": "Failed to save uploaded file on server."},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Prune older entries: keep only last 5
-        qs = UploadedDataset.objects.order_by('-uploaded_at')
-        to_delete = qs[5:]
-        for old in to_delete:
-            try:
-                old.csv_file.delete(save=False)
-            except Exception:
-                pass
-            old.delete()
+        try:
+            qs = UploadedDataset.objects.order_by('-uploaded_at')
+            to_delete = qs[5:]
+            for old in to_delete:
+                try:
+                    old.csv_file.delete(save=False)
+                except Exception:
+                    pass
+                old.delete()
+        except Exception:
+            logger.exception("Failed pruning old UploadedDataset entries")
 
-        serializer = UploadedDatasetSerializer(obj)
+        serializer = UploadedDatasetSerializer(obj, context={'request': request})
         return Response({
             'id': obj.id,
             'summary': summary,
@@ -225,35 +244,25 @@ class DatasetSummaryView(APIView):
     """
     GET /api/summary/<int:pk>/
     Returns summary JSON + preview_rows for a given upload id.
-    Response shape:
-      {
-        "summary": { ... },
-        "preview_rows": [ {row}, ... ]   # up to first 8 rows
-      }
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk, format=None):
         obj = get_object_or_404(UploadedDataset, pk=pk)
 
-        # default empty preview
         preview_rows = []
-
-        # try reading CSV stored with this object
         try:
             if getattr(obj.csv_file, 'path', None):
                 df = pd.read_csv(obj.csv_file.path)
             else:
                 with default_storage.open(obj.csv_file.name, mode='rb') as fh:
                     df = pd.read_csv(fh)
-            # normalize columns to strings and take first 8 rows
             df.columns = [str(c).strip() for c in df.columns]
             preview_rows = df.head(8).to_dict(orient='records')
         except Exception:
-            # if reading fails, leave preview_rows empty and log
             logger.exception("Failed to read CSV for preview in DatasetSummaryView (pk=%s)", pk)
+            preview_rows = []
 
-        # return both summary and preview_rows
         return Response({'summary': obj.summary or {}, 'preview_rows': preview_rows})
 
 
@@ -276,8 +285,8 @@ class ReportView(APIView):
             else:
                 with default_storage.open(obj.csv_file.name, mode='rb') as fh:
                     df = pd.read_csv(fh)
-        except Exception as e:
-            logger.exception("Failed to read CSV for ReportView (pk=%s): %s", pk, e)
+        except Exception:
+            logger.exception("Failed to read CSV for ReportView (pk=%s)", pk)
             df = None  # proceed without preview
 
         # Chart type from query param
@@ -312,7 +321,6 @@ class ReportView(APIView):
             if isinstance(averages, dict):
                 for k, v in averages.items():
                     try:
-                        # use f-string (avoid shadowing built-in format)
                         p.drawString(92, y, f"{k}: {('N/A' if v is None else f'{v:.2f}')}")
                     except Exception:
                         p.drawString(92, y, f"{k}: {v}")
@@ -323,7 +331,6 @@ class ReportView(APIView):
             p.setFont("Helvetica-Bold", 11)
             p.drawString(72, y, "Type distribution")
             y -= 14
-            p.setFont("Helvetica", 10)
             type_dist = summary.get('type_distribution', {})
             if isinstance(type_dist, dict):
                 for t, count in type_dist.items():
@@ -386,8 +393,8 @@ class ReportView(APIView):
             response['Content-Disposition'] = f'attachment; filename="report_dataset_{pk}.pdf"'
             return response
 
-        except Exception as e:
-            logger.exception("Failed to generate PDF for dataset %s: %s", pk, e)
+        except Exception:
+            logger.exception("Failed to generate PDF for dataset %s", pk)
             return Response({'detail': 'Failed to generate PDF. Check server logs.'},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -395,19 +402,7 @@ class ReportView(APIView):
 class ReportFromSummaryView(APIView):
     """
     POST /api/report-from-summary/
-    Expected JSON:
-    {
-      "filename": "optional_name.pdf",
-      "include": {
-        "summary": true,
-        "type_chart": true,
-        "type_chart_type": "bar" | "pie" | "line" | "hist",
-        "analysis": { "include": true, "mode": "single"|"multi", "parameter": "Flowrate", "chart_type": "bar" },
-        "preview_rows": true
-      },
-      "summary": {...},
-      "preview_rows": [...]
-    }
+    Accepts a summary + preview_rows + include options and returns a generated PDF.
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -428,7 +423,7 @@ class ReportFromSummaryView(APIView):
         inc_analysis = analysis_cfg.get("include", False)
         analysis_mode = analysis_cfg.get("mode", "single")
         analysis_param = analysis_cfg.get("parameter", "Flowrate")
-        analysis_chart_type = analysis_cfg.get("chart_type", "bar")  # applies to analysis charts
+        analysis_chart_type = analysis_cfg.get("chart_type", "bar")
 
         try:
             buffer = io.BytesIO()
@@ -439,8 +434,9 @@ class ReportFromSummaryView(APIView):
             p.setFont("Helvetica-Bold", 16)
             p.drawString(72, height - 72, "Chemical Equipment Report (Ad-hoc)")
             p.setFont("Helvetica", 10)
-            p.drawString(72, height - 90, f"Generated by: {request.user.username if request.user and hasattr(request.user,'username') else 'user'}")
-            p.drawString(72, height - 104, f"Generated at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            username = getattr(request.user, "username", "user")
+            p.drawString(72, height - 90, f"Generated by: {username}")
+            p.drawString(72, height - 104, f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             y = height - 132
 
@@ -465,7 +461,7 @@ class ReportFromSummaryView(APIView):
                         y -= 12
                 y -= 6
 
-            # TYPE distribution chart (Matplotlib) - use `chart_type` from include
+            # TYPE distribution chart
             if inc_type_chart:
                 if y < 240:
                     p.showPage()
@@ -490,7 +486,7 @@ class ReportFromSummaryView(APIView):
                     p.drawString(72, y, "Type distribution chart not available.")
                     y -= 18
 
-            # ANALYSIS charts (per-type averages) - uses analysis_chart_type
+            # ANALYSIS charts (per-type averages)
             if inc_analysis:
                 per_type_avgs = (summary or {}).get('per_type_averages', {}) or {}
                 if analysis_mode == 'single':
@@ -506,7 +502,7 @@ class ReportFromSummaryView(APIView):
                     p.drawString(72, y, "Analysis")
                     y -= 14
                     p.setFont("Helvetica", 10)
-                    p.drawString(72, y, "Per-type averages not available for this dataset. Re-upload dataset to compute analysis charts.")
+                    p.drawString(72, y, "Per-type averages not available for this dataset.")
                     y -= 18
                 else:
                     for param in params_to_draw:
@@ -526,7 +522,6 @@ class ReportFromSummaryView(APIView):
                         # Render analysis chart using analysis_chart_type
                         try:
                             buf_img = io.BytesIO()
-                            # make chart with chosen type
                             plt.figure(figsize=(8, 2.8), dpi=100)
                             labels = list(data_dict.keys())
                             vals = [data_dict[k] if data_dict[k] is not None else 0 for k in labels]
@@ -534,11 +529,12 @@ class ReportFromSummaryView(APIView):
                             if analysis_chart_type == 'bar':
                                 plt.bar(labels, vals)
                             elif analysis_chart_type == 'pie':
-                                # pie needs non-zero values, fall back to bar if all zero
                                 if sum(vals) == 0:
                                     plt.bar(labels, vals)
                                 else:
-                                    plt.pie(vals, labels=labels, autopct='%1.0f%%')
+                                    plt.pie(vals, labels=None, autopct='%1.0f%%', startangle=90)
+                                    plt.legend(labels, loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=8)
+                                    plt.axis('equal')
                             elif analysis_chart_type == 'line':
                                 plt.plot(labels, vals, marker='o')
                             elif analysis_chart_type == 'hist':
@@ -554,7 +550,6 @@ class ReportFromSummaryView(APIView):
                             plt.close()
                             buf_img.seek(0)
 
-                            # embed into PDF
                             if y < 200:
                                 p.showPage()
                                 y = height - 72
@@ -574,7 +569,7 @@ class ReportFromSummaryView(APIView):
                             p.drawString(72, y, f"Failed to draw analysis chart for {param}.")
                             y -= 18
 
-            # PREVIEW rows table (if requested)
+            # PREVIEW rows (if requested)
             if inc_preview and preview_rows:
                 if y < 200:
                     p.showPage()
@@ -609,6 +604,6 @@ class ReportFromSummaryView(APIView):
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
 
-        except Exception as e:
-            logger.exception("Failed to generate ad-hoc PDF: %s", e)
+        except Exception:
+            logger.exception("Failed to generate ad-hoc PDF")
             return Response({'detail': 'Failed to generate PDF (server).'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,11 +1,16 @@
+# Backend (Django + API)
 Django>=4.2
 djangorestframework
+djangorestframework-simplejwt
 django-cors-headers
+python-magic==0.4.25
 pandas
 reportlab
-python-magic==0.4.25
 
-pyqt5
+# Desktop client (PyQt)
+PyQt5
 matplotlib
 requests
-pandas
+
+# (If you need extra desktop helpers, add them here)
+pillow

@@ -1,36 +1,38 @@
-# Part 1 of 3 — imports, helpers, MplCanvas, ParameterCard
 """
-PyQt5 Desktop client — improved layout with single PDF download control and multi-select options.
-
-Usage:
-    python pyqt_app.py
-
+PyQt5 Desktop client — JWT-only (access/refresh) + nicer PDF layout (ReportLab Platypus).
+Usage: python pyqt_app.py
 Dependencies:
     pip install pyqt5 matplotlib requests pandas reportlab pillow
 """
+
 import sys
 import io
-import math
 import requests
 import pandas as pd
 import matplotlib
-# use non-GUI Agg backend (safe)
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # safe backend when saving figures to files
 from matplotlib.figure import Figure
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QFileDialog, QTableWidget, QTableWidgetItem, QGroupBox,
     QTextEdit, QComboBox, QListWidget, QMessageBox, QSizePolicy, QTabWidget,
-    QScrollArea, QFrame, QGridLayout, QSplitter, QToolButton, QMenu, QAction
+    QScrollArea, QFrame, QGridLayout, QSplitter, QToolButton, QMenu, QAction, QDialog, QFormLayout
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from datetime import datetime
+from PIL import Image
+import traceback
 
 API_BASE_DEFAULT = "http://127.0.0.1:8000"
 
-# -------------------------
-# Robust helper: create PNG bytes from values_dict for embedding in PDF
-# -------------------------
+# ------------------------- helpers -------------------------
 def safe_label(s: str, max_len=20):
     if s is None:
         return ""
@@ -45,13 +47,70 @@ def use_constrained_layout(fig: Figure):
     except Exception:
         pass
 
+def _annotate_bars(ax, vals, use_hbar):
+    """
+    Annotate bars such that:
+      - If a bar is tall/long enough (>= threshold of max), place label inside (white text).
+      - Otherwise place label outside (black text).
+    Avoid overlap with chart boundary by adding headroom.
+    """
+    try:
+        nums = [v for v in vals if isinstance(v, (int, float))]
+        max_val = max(nums) if nums else 0.0
+        inside_frac = 0.12 if max_val > 0 else 0.2
+
+        patches = ax.patches
+        if not patches:
+            return
+
+        if use_hbar:
+            headroom = max_val * 0.12 if max_val > 0 else 1.0
+            left, right = ax.get_xlim()
+            ax.set_xlim(0, max(max_val + headroom, right))
+            for bar in patches:
+                w = bar.get_width() or 0
+                y = bar.get_y() + bar.get_height() / 2
+                if max_val > 0 and w >= inside_frac * max_val:
+                    ax.annotate(f'{w:.2f}',
+                                xy=(w * 0.98, y),
+                                xytext=(0, 0),
+                                textcoords='offset points',
+                                ha='right', va='center',
+                                fontsize=8, color='white', weight='bold')
+                else:
+                    ax.annotate(f'{w:.2f}',
+                                xy=(w, y),
+                                xytext=(4, 0),
+                                textcoords='offset points',
+                                ha='left', va='center',
+                                fontsize=8, color='black')
+        else:
+            headroom = max_val * 0.12 if max_val > 0 else 1.0
+            bottom, top = ax.get_ylim()
+            ax.set_ylim(0, max(max_val + headroom, top))
+            for bar in patches:
+                h = bar.get_height() or 0
+                x = bar.get_x() + bar.get_width() / 2
+                if max_val > 0 and h >= inside_frac * max_val:
+                    ax.annotate(f'{h:.2f}',
+                                xy=(x, h * 0.98),
+                                xytext=(0, 0),
+                                textcoords='offset points',
+                                ha='center', va='top',
+                                fontsize=8, color='white', weight='bold')
+                else:
+                    ax.annotate(f'{h:.2f}',
+                                xy=(x, h),
+                                xytext=(0, 4),
+                                textcoords='offset points',
+                                ha='center', va='bottom',
+                                fontsize=8, color='black')
+    except Exception:
+        pass
+
+# create PNG bytes from values_dict for embedding
 def create_plot_image(param_name, values_dict, chart_type='bar',
                       width_inches=8, height_inches=4, dpi=200, logger_fn=None):
-    """
-    Build a matplotlib Figure from values_dict (label->value) and return PNG bytes (BytesIO).
-    Guarantees a non-empty BytesIO (placeholder image on failure).
-    logger_fn: optional callable(str) to receive debug messages (e.g. self.log).
-    """
     buf = io.BytesIO()
     try:
         fig = Figure(figsize=(width_inches, height_inches), dpi=dpi)
@@ -75,12 +134,10 @@ def create_plot_image(param_name, values_dict, chart_type='bar',
             if use_hbar:
                 ax.barh(labels_short, vals)
                 ax.invert_yaxis()
+                _annotate_bars(ax, vals, use_hbar=True)
             else:
-                bars = ax.bar(labels_short, vals)
-                for bar in bars:
-                    h = bar.get_height()
-                    ax.annotate(f'{h:.2f}', xy=(bar.get_x()+bar.get_width()/2, h),
-                                xytext=(0,4), textcoords='offset points', ha='center', fontsize=8)
+                ax.bar(labels_short, vals)
+                _annotate_bars(ax, vals, use_hbar=False)
             ax.set_ylabel(param_name)
         elif chart_type == 'line':
             ax.plot(labels_short, vals, marker='o', linestyle='-')
@@ -102,6 +159,7 @@ def create_plot_image(param_name, values_dict, chart_type='bar',
                 ax.text(0.5, 0.5, 'No numeric data', ha='center', va='center')
         else:
             ax.bar(labels_short, vals)
+            _annotate_bars(ax, vals, use_hbar=False)
 
         ax.set_title(f'{param_name}', fontsize=11)
         if not use_hbar:
@@ -115,9 +173,7 @@ def create_plot_image(param_name, values_dict, chart_type='bar',
 
         fig.savefig(buf, format='png', bbox_inches='tight', dpi=dpi)
         buf.seek(0)
-
         if buf.getbuffer().nbytes == 0:
-            if logger_fn: logger_fn(f"create_plot_image: produced zero-length buffer for {param_name}")
             buf = io.BytesIO()
             fig2 = Figure(figsize=(6,3), dpi=dpi)
             ax2 = fig2.add_subplot(111)
@@ -125,11 +181,11 @@ def create_plot_image(param_name, values_dict, chart_type='bar',
             ax2.axis('off')
             fig2.savefig(buf, format='png', bbox_inches='tight', dpi=dpi)
             buf.seek(0)
-
         return buf
-
     except Exception as e:
-        if logger_fn: logger_fn(f"create_plot_image exception for {param_name}: {e}")
+        if logger_fn:
+            try: logger_fn(f"create_plot_image exception for {param_name}: {e}")
+            except Exception: pass
         buf = io.BytesIO()
         try:
             fig = Figure(figsize=(6,3), dpi=dpi)
@@ -143,6 +199,159 @@ def create_plot_image(param_name, values_dict, chart_type='bar',
             buf.write(b'\x89PNG\r\n\x1a\n')
             buf.seek(0)
             return buf
+
+# ---------- nicer PDF generator (Platypus) ----------
+def generate_nice_pdf(path,
+                      summary,
+                      preview_rows,
+                      dataset_id=None,
+                      include_summary=True,
+                      include_type_chart=True,
+                      include_analysis=True,
+                      include_preview=True,
+                      analysis_params_order=None,
+                      create_plot_image_fn=None,
+                      overview_chart_choice='bar',
+                      analysis_chart_types=None,
+                      logger_fn=None):
+    """
+    Generate a nicer, block-based PDF using ReportLab Platypus.
+    analysis_chart_types: dict mapping param name -> chart_type (e.g. {'Flowrate': 'line', ...})
+    """
+    if analysis_params_order is None:
+        analysis_params_order = ['Flowrate','Pressure','Temperature']
+    if analysis_chart_types is None:
+        analysis_chart_types = {}
+
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='HeadingLarge', fontSize=16, leading=18, spaceAfter=6, spaceBefore=6))
+    styles.add(ParagraphStyle(name='HeadingSmall', fontSize=11, leading=13, spaceAfter=4, textColor=colors.HexColor('#333333')))
+    styles.add(ParagraphStyle(name='MonoSmall', fontName='Helvetica', fontSize=9, leading=11))
+    styles.add(ParagraphStyle(name='Block', fontSize=10, leading=12, backColor=colors.whitesmoke, borderPadding=6, spaceAfter=6))
+
+    doc = SimpleDocTemplate(path, pagesize=letter,
+                            rightMargin=48, leftMargin=48, topMargin=48, bottomMargin=48)
+    flow = []
+
+    # Header
+    title = Paragraph("Chemical Equipment Report", styles['HeadingLarge'])
+    meta_lines = []
+    meta_lines.append(f"Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    if dataset_id:
+        meta_lines.append(f"Dataset ID: {dataset_id}")
+    meta = Paragraph("<br/>".join(meta_lines), styles['MonoSmall'])
+
+    header_table = Table([[title, meta]], colWidths=[4.5*inch, 2.5*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+    ]))
+    flow.append(header_table)
+    flow.append(Spacer(1, 12))
+
+    # SUMMARY BOXES
+    if include_summary and summary:
+        total = summary.get('total_count', 'N/A')
+        avg_flow = summary.get('averages', {}).get('Flowrate')
+        avg_flow_display = ("N/A" if avg_flow is None else f"{avg_flow:.2f}")
+        ntypes = len(summary.get('type_distribution', {}) or {})
+
+        box_data = [
+            [Paragraph("<b>Total equipment</b>", styles['HeadingSmall']),
+             Paragraph("<b>Avg Flowrate</b>", styles['HeadingSmall']),
+             Paragraph("<b>Equipment types</b>", styles['HeadingSmall'])],
+            [Paragraph(str(total), styles['Block']),
+             Paragraph(str(avg_flow_display), styles['Block']),
+             Paragraph(str(ntypes), styles['Block'])]
+        ]
+        box_table = Table(box_data, colWidths=[2*inch, 2*inch, 2*inch])
+        box_table.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.25, colors.HexColor('#dddddd')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')),
+            ('BACKGROUND', (0,1), (-1,1), colors.whitesmoke)
+        ]))
+        flow.append(box_table)
+        flow.append(Spacer(1, 12))
+
+        # averages detail
+        avg_rows = []
+        avgs = summary.get('averages', {}) or {}
+        for k, v in avgs.items():
+            avg_rows.append([Paragraph(k, styles['MonoSmall']), Paragraph(('N/A' if v is None else f"{v:.2f}"), styles['MonoSmall'])])
+        if avg_rows:
+            avg_table = Table([ [Paragraph("<b>Averages</b>", styles['HeadingSmall']), ''] ] + avg_rows, colWidths=[2.2*inch, 2.8*inch])
+            avg_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f3f6fb')),
+                ('BOX', (0,0), (-1,-1), 0.25, colors.HexColor('#e0e0e0')),
+                ('INNERGRID', (0,1), (-1,-1), 0.25, colors.HexColor('#eeeeee'))
+            ]))
+            flow.append(avg_table)
+            flow.append(Spacer(1, 10))
+
+    # Type distribution chart
+    if include_type_chart and summary:
+        td = summary.get('type_distribution', {}) or {}
+        if td and create_plot_image_fn:
+            try:
+                img_buf = create_plot_image_fn('Type distribution', td, chart_type=overview_chart_choice, width_inches=6.5, height_inches=3.0, dpi=200, logger_fn=logger_fn)
+                img_buf.seek(0)
+                rl_img = RLImage(img_buf, width=6.5*inch, height=3.0*inch)
+                flow.append(Paragraph("Type distribution", styles['HeadingSmall']))
+                flow.append(rl_img)
+                flow.append(Spacer(1, 12))
+            except Exception as e:
+                if logger_fn:
+                    logger_fn(f"Failed to render type chart: {e}")
+                flow.append(Paragraph("Type distribution chart unavailable.", styles['MonoSmall']))
+                flow.append(Spacer(1, 8))
+
+    # Analysis charts (use provided analysis_chart_types)
+    if include_analysis and summary:
+        per_type_avgs = summary.get('per_type_averages', {}) or {}
+        for param in (analysis_params_order or []):
+            data_dict = per_type_avgs.get(param, {}) or {}
+            if not data_dict:
+                continue
+            flow.append(Paragraph(f"Analysis — {param}", styles['HeadingSmall']))
+            if create_plot_image_fn:
+                chart_type = analysis_chart_types.get(param, 'bar')
+                try:
+                    img_buf = create_plot_image_fn(f"{param} (avg by type)", data_dict, chart_type=chart_type, width_inches=6.5, height_inches=2.6, dpi=200, logger_fn=logger_fn)
+                    img_buf.seek(0)
+                    rl_img = RLImage(img_buf, width=6.5*inch, height=2.6*inch)
+                    flow.append(rl_img)
+                    flow.append(Spacer(1, 8))
+                except Exception as e:
+                    if logger_fn:
+                        logger_fn(f"Failed to render analysis chart for {param}: {e}")
+                    flow.append(Paragraph(f"Chart unavailable for {param}.", styles['MonoSmall']))
+                    flow.append(Spacer(1, 8))
+
+    # Preview rows table
+    if include_preview and preview_rows:
+        flow.append(Paragraph("Preview (first rows)", styles['HeadingSmall']))
+        cols = list(preview_rows[0].keys())[:6]
+        header = [Paragraph(f"<b>{c}</b>", styles['MonoSmall']) for c in cols]
+        data = [header]
+        for r in preview_rows[:8]:
+            row = [Paragraph(str(r.get(c, '')), styles['MonoSmall']) for c in cols]
+            data.append(row)
+        preview_table = Table(data, colWidths=[(doc.width / max(1, len(cols))) for _ in cols])
+        preview_table.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.25, colors.HexColor('#e6e6e6')),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f7f9fc')),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ]))
+        flow.append(preview_table)
+        flow.append(Spacer(1, 8))
+
+    flow.append(Spacer(1, 12))
+    flow.append(Paragraph("Generated by Chemical Equipment Parameter Visualizer — desktop client", styles['MonoSmall']))
+
+    doc.build(flow)
 
 # ---------- Matplotlib canvas wrapper ----------
 class MplCanvas(FigureCanvas):
@@ -222,14 +431,10 @@ class ParameterCard(QWidget):
                 if use_hbar:
                     ax.barh(labels_short, vals)
                     ax.invert_yaxis()
+                    _annotate_bars(ax, vals, use_hbar=True)
                 else:
-                    bars = ax.bar(labels_short, vals)
-                    for bar in bars:
-                        h = bar.get_height()
-                        ax.annotate(f'{h:.2f}',
-                                    xy=(bar.get_x() + bar.get_width() / 2, h),
-                                    xytext=(0, 4), textcoords='offset points',
-                                    ha='center', fontsize=8)
+                    ax.bar(labels_short, vals)
+                    _annotate_bars(ax, vals, use_hbar=False)
                 ax.set_ylabel(self.param)
             elif chart_type == 'line':
                 ax.plot(labels_short, vals, marker='o', linestyle='-')
@@ -254,6 +459,7 @@ class ParameterCard(QWidget):
                     ax.text(0.5, 0.5, 'No numeric data', ha='center', va='center')
             else:
                 ax.bar(labels_short, vals)
+                _annotate_bars(ax, vals, use_hbar=False)
 
             ax.set_title(f'Average {self.param} by Type', fontsize=10)
             if not use_hbar:
@@ -277,44 +483,81 @@ class ParameterCard(QWidget):
                 pass
         self.setParent(None)
         self.hide()
-# Part 2 of 3 — DesktopApp UI, uploads, rendering, analysis cards
-# (paste this after Part 1)
 
+# ---------- Login dialog ----------
+class LoginDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Login (JWT)")
+        self.resize(320, 120)
+        layout = QFormLayout(self)
+        self.username = QLineEdit()
+        self.password = QLineEdit()
+        self.password.setEchoMode(QLineEdit.Password)
+        layout.addRow("Username:", self.username)
+        layout.addRow("Password:", self.password)
+        btn_row = QHBoxLayout()
+        ok = QPushButton("Login"); cancel = QPushButton("Cancel")
+        ok.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        btn_row.addWidget(ok); btn_row.addWidget(cancel)
+        layout.addRow(btn_row)
+
+    def get_credentials(self):
+        return self.username.text().strip(), self.password.text().strip()
+
+# ---------- Main application ----------
 class DesktopApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Chemical Equipment Parameter Visualizer — Desktop (Refined UI)")
+        self.setWindowTitle("Chemical Equipment Parameter Visualizer — Desktop")
         self.resize(1250, 820)
 
         # state
         self.api_base = API_BASE_DEFAULT
-        self.token = ""
+        self.access_token = None
+        self.refresh_token = None
         self.current_summary = None
         self.current_preview = []
         self.current_dataset_id = None
+        self.logged_in_username = None
 
         # left sidebar widgets
         left_layout = QVBoxLayout()
         api_group = QGroupBox("Backend / Authentication")
         ag = QVBoxLayout()
         self.api_input = QLineEdit(self.api_base)
-        self.token_input = QLineEdit()
-        self.token_input.setEchoMode(QLineEdit.Password)
-        btn_set = QPushButton("Set API & Token")
-        btn_set.clicked.connect(self.set_api_token)
+
+        # login status label
+        self.login_status_label = QLabel("Not logged in")
+        self.login_status_label.setStyleSheet("color: #b65a00;")
+        self.login_status_label.setWordWrap(True)
+
         ag.addWidget(QLabel("API Base URL:"))
         ag.addWidget(self.api_input)
-        ag.addWidget(QLabel("Token:"))
-        ag.addWidget(self.token_input)
-        ag.addWidget(btn_set)
+        ag.addWidget(self.login_status_label)
+
+        # Login / Logout buttons (JWT)
+        btn_row = QHBoxLayout()
+        btn_login = QPushButton("Login (get JWT)")
+        btn_login.clicked.connect(self.show_login_dialog)
+        self.btn_logout = QPushButton("Logout")
+        self.btn_logout.clicked.connect(self.logout)
+        self.btn_logout.setEnabled(False)
+        btn_row.addWidget(btn_login)
+        btn_row.addWidget(self.btn_logout)
+        ag.addLayout(btn_row)
+
         api_group.setLayout(ag)
         left_layout.addWidget(api_group)
 
         upload_group = QGroupBox("Upload CSV")
         up_layout = QVBoxLayout()
-        btn_upload = QPushButton("Upload CSV")
-        btn_upload.clicked.connect(self.upload_csv)
-        up_layout.addWidget(btn_upload)
+        self.btn_upload = QPushButton("Upload CSV")
+        self.btn_upload.clicked.connect(self.upload_csv)
+        # disabled until JWT login
+        self.btn_upload.setEnabled(False)
+        up_layout.addWidget(self.btn_upload)
         upload_group.setLayout(up_layout)
         left_layout.addWidget(upload_group)
 
@@ -322,10 +565,11 @@ class DesktopApp(QWidget):
         h_layout = QVBoxLayout()
         self.history_list = QListWidget()
         self.history_list.itemClicked.connect(self.load_history_item)
-        btn_refresh = QPushButton("Refresh History")
-        btn_refresh.clicked.connect(self.load_history)
+        self.btn_refresh = QPushButton("Refresh History")
+        self.btn_refresh.clicked.connect(self.load_history)
+        self.btn_refresh.setEnabled(False)
         h_layout.addWidget(self.history_list)
-        h_layout.addWidget(btn_refresh)
+        h_layout.addWidget(self.btn_refresh)
         history_group.setLayout(h_layout)
         left_layout.addWidget(history_group)
 
@@ -374,7 +618,6 @@ class DesktopApp(QWidget):
         self.btn_download_pdf.clicked.connect(self.handle_download_pdf_click)
         self.pdf_menu = QMenu()
 
-        # keep only the include/use options — remove the two submenus per your request
         self.act_use_saved = QAction("Use saved dataset (if available)", self, checkable=True)
         self.act_include_summary = QAction("Include summary", self, checkable=True)
         self.act_include_type_chart = QAction("Include type chart", self, checkable=True)
@@ -387,12 +630,9 @@ class DesktopApp(QWidget):
         self.act_include_preview.setChecked(True)
         self.act_use_saved.setChecked(False)
 
-        # removed: type_chart_menu and analysis_chart_menu creation
-
         self.act_select_all = QAction("Select all includes", self)
         self.act_select_all.triggered.connect(self.select_all_includes)
 
-        # assemble menu (no submenus)
         self.pdf_menu.addAction(self.act_use_saved)
         self.pdf_menu.addSeparator()
         self.pdf_menu.addAction(self.act_include_summary)
@@ -469,9 +709,11 @@ class DesktopApp(QWidget):
         self.analysis_params_order = ['Flowrate','Pressure','Temperature']
 
         self.apply_styles()
-        self.log("Ready. Set API base & token then refresh history.")
+        self.log("Ready. Set API base then Login to proceed.")
+        # initial load history (will warn if unauthorized)
         self.load_history()
 
+    # ---------- small UI helpers ----------
     def apply_styles(self):
         self.setStyleSheet("""
             QWidget { font-family: Arial; font-size: 11px; }
@@ -481,8 +723,28 @@ class DesktopApp(QWidget):
             QToolButton { padding:6px; }
         """)
 
-    def log(self, msg: str):
-        self.status_box.append(msg)
+    def log(self, msg: str, level: str = "info"):
+        """
+        Append colored, timestamped messages to the status box.
+        level: "info"|"warn"|"error"|"success"
+        """
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        color = "#000"
+        if level == "error":
+            color = "#b00"
+        elif level == "warn":
+            color = "#b65a00"
+        elif level == "success":
+            color = "#080"
+        else:
+            color = "#000"
+        try:
+            self.status_box.append(f"<span style='color:{color}'>[{ts}] {msg}</span>")
+        except Exception:
+            try:
+                self.status_box.append(f"[{ts}] {msg}")
+            except Exception:
+                pass
 
     def toggle_preview(self):
         if self.btn_toggle_preview.isChecked():
@@ -492,49 +754,143 @@ class DesktopApp(QWidget):
             self.preview_table.show()
             self.btn_toggle_preview.setText("Hide Preview")
 
+    # ---------- AUTH helpers (JWT) ----------
     def headers(self):
         h = {}
-        if self.token:
-            h['Authorization'] = f"Token {self.token}"
+        if getattr(self, "access_token", None):
+            h['Authorization'] = f"Bearer {self.access_token}"
         return h
 
-    def set_api_token(self):
-        self.api_base = (self.api_input.text() or API_BASE_DEFAULT).strip()
-        self.token = self.token_input.text().strip()
-        self.log(f"API base set to {self.api_base}")
-        if self.token:
-            self.log("Token set.")
-        self.load_history()
+    def show_login_dialog(self):
+        dlg = LoginDialog(self)
+        if dlg.exec_() == QDialog.Accepted:
+            username, password = dlg.get_credentials()
+            if username and password:
+                QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+                try:
+                    ok = self.obtain_jwt_tokens(username, password)
+                finally:
+                    QApplication.restoreOverrideCursor()
+                if ok:
+                    QMessageBox.information(self, "Login", "Login successful — access token obtained.")
+                    self.btn_logout.setEnabled(True)
+                else:
+                    QMessageBox.critical(self, "Login failed", "Failed to obtain tokens. Check credentials and server.")
+            else:
+                QMessageBox.warning(self, "Login", "Provide both username and password.")
 
+    def obtain_jwt_tokens(self, username: str, password: str) -> bool:
+        """
+        POST to /api/token/ to obtain access & refresh tokens.
+        Stores them in self.access_token & self.refresh_token.
+        """
+        url = f"{self.api_base.rstrip('/')}/api/token/"
+        try:
+            r = requests.post(url, json={"username": username, "password": password}, timeout=12)
+            if r.status_code == 200:
+                data = r.json()
+                self.access_token = data.get("access")
+                self.refresh_token = data.get("refresh")
+                self.logged_in_username = username
+                try:
+                    self.login_status_label.setText(f"Logged in as: {username}")
+                    self.login_status_label.setStyleSheet("color: #080;")
+                except Exception:
+                    pass
+                # enable relevant buttons
+                self.btn_upload.setEnabled(True)
+                self.btn_refresh.setEnabled(True)
+                self.btn_logout.setEnabled(True)
+                self.log("Obtained JWT access & refresh tokens.", level="success")
+                return True
+            else:
+                try:
+                    self.login_status_label.setText("Login failed")
+                    self.login_status_label.setStyleSheet("color: #b00;")
+                except Exception:
+                    pass
+                self.log(f"Token obtain failed: {r.status_code} {r.text}", level="error")
+                return False
+        except requests.exceptions.RequestException as e:
+            try:
+                self.login_status_label.setText("Login error")
+                self.login_status_label.setStyleSheet("color: #b00;")
+            except Exception:
+                pass
+            self.log(f"Token request error: {e}", level="error")
+            return False
+
+    def refresh_access_token(self) -> bool:
+        """
+        Use the refresh token to get a new access token.
+        """
+        if not getattr(self, "refresh_token", None):
+            return False
+        url = f"{self.api_base.rstrip('/')}/api/token/refresh/"
+        try:
+            r = requests.post(url, json={"refresh": self.refresh_token}, timeout=12)
+            if r.status_code == 200:
+                self.access_token = r.json().get("access")
+                self.log("Refreshed access token.", level="info")
+                return True
+            else:
+                self.log(f"Refresh failed: {r.status_code} {r.text}", level="warn")
+                return False
+        except requests.exceptions.RequestException as e:
+            self.log(f"Refresh error: {e}", level="error")
+            return False
+
+    def logout(self):
+        """
+        Clear tokens and disable actions that require authentication.
+        """
+        self.access_token = None
+        self.refresh_token = None
+        self.logged_in_username = None
+        self.btn_upload.setEnabled(False)
+        self.btn_refresh.setEnabled(False)
+        self.btn_logout.setEnabled(False)
+        try:
+            self.login_status_label.setText("Not logged in")
+            self.login_status_label.setStyleSheet("color: #b65a00;")
+        except Exception:
+            pass
+        self.log("Logged out — tokens cleared.", level="info")
+
+    # ---------- uploads / history / summary ----------
     def upload_csv(self):
         path, _ = QFileDialog.getOpenFileName(self, "Choose CSV", "", "CSV Files (*.csv);;All Files (*)")
         if not path:
             return
-        self.log(f"Uploading: {path}")
+        self.log(f"Uploading: {path}", level="info")
         url = f"{self.api_base.rstrip('/')}/api/upload/"
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             with open(path, 'rb') as fh:
                 files = {'file': (path.split('/')[-1], fh, 'text/csv')}
-                r = requests.post(url, files=files, headers=self.headers(), timeout=30)
-            if r.status_code == 201:
+                r = requests.post(url, files=files, headers=self.headers(), timeout=60)
+            if r.status_code in (200, 201):
                 data = r.json()
                 self.current_summary = data.get('summary')
                 self.current_dataset_id = data.get('id') or (data.get('object') or {}).get('id')
                 self.current_preview = data.get('preview_rows', [])
-                self.log("Upload successful.")
+                self.log("Upload successful.", level="success")
                 self.update_ui_from_summary()
                 self.load_history()
             else:
-                self.log(f"Upload failed: {r.status_code} {r.text}")
+                self.log(f"Upload failed: {r.status_code} {r.text}", level="error")
                 QMessageBox.critical(self, "Upload failed", f"{r.status_code}: {r.text}")
         except requests.exceptions.RequestException as e:
-            self.log(f"Upload exception: {e}")
+            self.log(f"Upload exception: {e}", level="error")
             QMessageBox.critical(self, "Upload error", str(e))
+        finally:
+            QApplication.restoreOverrideCursor()
 
     def load_history(self):
         url = f"{self.api_base.rstrip('/')}/api/history/"
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
-            r = requests.get(url, headers=self.headers(), timeout=10)
+            r = requests.get(url, headers=self.headers(), timeout=12)
             if r.status_code == 200:
                 self.history_list.clear()
                 items = r.json()
@@ -545,18 +901,21 @@ class DesktopApp(QWidget):
                     lw = QtWidgets.QListWidgetItem(label)
                     lw.setData(QtCore.Qt.UserRole, pk)
                     self.history_list.addItem(lw)
-                self.log("History loaded.")
+                self.log("History loaded.", level="info")
             elif r.status_code == 401:
-                self.log("History: unauthorized (401). Set valid token.")
+                self.log("History: unauthorized (401). Use Login to obtain JWT.", level="warn")
             else:
-                self.log(f"Failed to load history: {r.status_code} {r.text}")
+                self.log(f"Failed to load history: {r.status_code} {r.text}", level="error")
         except requests.exceptions.RequestException as e:
-            self.log(f"History exception: {e}")
+            self.log(f"History exception: {e}", level="error")
+        finally:
+            QApplication.restoreOverrideCursor()
 
     def load_history_item(self, item):
         pk = item.data(QtCore.Qt.UserRole)
-        self.log(f"Loading dataset {pk}")
+        self.log(f"Loading dataset {pk}", level="info")
         url = f"{self.api_base.rstrip('/')}/api/summary/{pk}/"
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             r = requests.get(url, headers=self.headers(), timeout=12)
             if r.status_code == 200:
@@ -569,12 +928,18 @@ class DesktopApp(QWidget):
                     self.current_preview = []
                 self.current_dataset_id = pk
                 self.update_ui_from_summary()
+            elif r.status_code == 401:
+                self.log("Unauthorized loading summary — token may be missing or expired. Try Login/Refresh.", level="warn")
+                QMessageBox.warning(self, "Unauthorized", "Token missing or expired. Please login again.")
             else:
-                self.log(f"Failed to load summary: {r.status_code} {r.text}")
+                self.log(f"Failed to load summary: {r.status_code} {r.text}", level="error")
                 QMessageBox.critical(self, "Load failed", f"{r.status_code}: {r.text}")
         except requests.exceptions.RequestException as e:
-            self.log(f"Load exception: {e}")
+            self.log(f"Load exception: {e}", level="error")
+        finally:
+            QApplication.restoreOverrideCursor()
 
+    # ---------- UI / update ----------
     def update_ui_from_summary(self):
         s = self.current_summary or {}
         for i in reversed(range(self.kpi_row.count())):
@@ -629,6 +994,7 @@ class DesktopApp(QWidget):
                 table_widget.setItem(r_idx, c_idx, item)
         table_widget.resizeColumnsToContents()
 
+    # ---------- Overview ----------
     def render_overview_chart(self):
         fig = self.overview_canvas.figure
         fig.clf()
@@ -662,12 +1028,10 @@ class DesktopApp(QWidget):
                 if use_hbar:
                     ax.barh(labels_short, counts)
                     ax.invert_yaxis()
+                    _annotate_bars(ax, counts, use_hbar=True)
                 else:
-                    bars = ax.bar(labels_short, counts)
-                    for bar in bars:
-                        h = bar.get_height()
-                        ax.annotate(f'{h}', xy=(bar.get_x()+bar.get_width()/2, h),
-                                    xytext=(0,4), textcoords='offset points', ha='center', fontsize=9)
+                    ax.bar(labels_short, counts)
+                    _annotate_bars(ax, counts, use_hbar=False)
                 ax.set_ylabel('Count')
             elif chart_type == 'pie':
                 if sum(counts) == 0:
@@ -705,6 +1069,7 @@ class DesktopApp(QWidget):
             ax.text(0.5, 0.5, f'Error: {e}', ha='center', va='center')
         self.overview_canvas.draw_idle()
 
+    # ---------- Analysis ----------
     def build_analysis_cards(self):
         for i in reversed(range(self.analysis_grid_layout.count())):
             widget = self.analysis_grid_layout.itemAt(i).widget()
@@ -745,7 +1110,7 @@ class DesktopApp(QWidget):
             self.param_cards.pop(param_name, None)
         if param_name in self.analysis_params_order:
             self.analysis_params_order.remove(param_name)
-        self.log(f"Removed analysis chart: {param_name}")
+        self.log(f"Removed analysis chart: {param_name}", level="info")
 
     def reset_analysis(self):
         self.analysis_params_order = ['Flowrate','Pressure','Temperature']
@@ -757,215 +1122,79 @@ class DesktopApp(QWidget):
         self.act_include_analysis.setChecked(True)
         self.act_include_preview.setChecked(True)
 
-    # After removing menus, get_selected_type_chart_type now reads overview dropdown
-    def get_selected_type_chart_type(self):
-        try:
-            return self.overview_chart_select.currentText()
-        except Exception:
-            return 'bar'
+    # --------- PDF handler (uses Platypus generator) ----------
+    def handle_download_pdf_click(self):
+        use_saved = self.act_use_saved.isChecked()
+        include_summary = self.act_include_summary.isChecked()
+        include_type_chart = self.act_include_type_chart.isChecked()
+        include_analysis = self.act_include_analysis.isChecked()
+        include_preview = self.act_include_preview.isChecked()
 
-    # analysis chart type is taken from per-card selectors; keep this for compatibility
-    def get_selected_analysis_chart_type(self):
-        # fallback: return 'bar'
-        return 'bar'
-# Part 3 of 3 — PDF generation, run loop
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from PIL import Image
-import traceback
-
-def _ensure_bytes_and_open(img_buf):
-    try:
-        img_buf.seek(0)
-        pil = Image.open(img_buf)
-        return pil
-    except Exception:
-        return None
-
-# Insert this method into DesktopApp (it uses self.* members)
-def handle_download_pdf_click(self):
-    """Generate PDF locally (or GET saved report). Uses create_plot_image to reliably render analysis charts."""
-    use_saved = self.act_use_saved.isChecked()
-    include_summary = self.act_include_summary.isChecked()
-    include_type_chart = self.act_include_type_chart.isChecked()
-    include_analysis = self.act_include_analysis.isChecked()
-    include_preview = self.act_include_preview.isChecked()
-
-    # If user chose saved report on server
-    if use_saved and self.current_dataset_id:
-        type_chart_type = self.get_selected_type_chart_type()
-        url = f"{self.api_base.rstrip('/')}/api/report/{self.current_dataset_id}/?chart_type={type_chart_type}"
-        try:
-            r = requests.get(url, headers=self.headers(), stream=True, timeout=30)
-            if r.status_code == 200:
-                path, _ = QFileDialog.getSaveFileName(self, "Save PDF", f"report_dataset_{self.current_dataset_id}.pdf", "PDF Files (*.pdf)")
-                if path:
-                    with open(path, 'wb') as fh:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            fh.write(chunk)
-                    QMessageBox.information(self, "Saved", f"Saved PDF to {path}")
-            else:
-                QMessageBox.critical(self, "Failed", f"{r.status_code}: {r.text}")
-        except requests.exceptions.RequestException as e:
-            QMessageBox.critical(self, "Error", str(e))
-        return
-
-    path, _ = QFileDialog.getSaveFileName(self, "Save PDF", "report_desktop.pdf", "PDF Files (*.pdf)")
-    if not path:
-        return
-
-    try:
-        buf_out = io.BytesIO()
-        p = canvas.Canvas(buf_out, pagesize=letter)
-        W, H = letter
-
-        # Header
-        p.setFont("Helvetica-Bold", 16)
-        p.drawString(72, H - 72, "Chemical Equipment Report")
-        p.setFont("Helvetica", 9)
-        p.drawString(72, H - 90, f"Generated by Desktop App")
-        p.drawString(72, H - 102, f"Dataset ID: {self.current_dataset_id or 'N/A'}")
-        p.drawString(72, H - 114, f"Generated at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-        y = H - 140
-        line_height = 12
-
-        # SUMMARY
-        if include_summary and self.current_summary:
-            s = self.current_summary or {}
-            p.setFont("Helvetica-Bold", 12)
-            p.drawString(72, y, "Summary")
-            y -= line_height
-            p.setFont("Helvetica", 10)
-            p.drawString(80, y, f"Total equipment: {s.get('total_count', 'N/A')}")
-            y -= line_height
-            p.drawString(80, y, "Averages:")
-            y -= line_height
-            avgs = s.get('averages', {}) or {}
-            for k, v in avgs.items():
-                try:
-                    p.drawString(92, y, f"{k}: {('N/A' if v is None else format(v, '.2f'))}")
-                except Exception:
-                    p.drawString(92, y, f"{k}: {v}")
-                y -= line_height
-            y -= line_height / 2
-
-        # OVERVIEW (uses overview dropdown selection)
-        if include_type_chart and getattr(self, 'current_summary', None):
+        # server-saved PDF
+        if use_saved and self.current_dataset_id:
+            type_chart_type = 'bar'
+            url = f"{self.api_base.rstrip('/')}/api/report/{self.current_dataset_id}/?chart_type={type_chart_type}"
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             try:
-                type_dist = (self.current_summary or {}).get('type_distribution', {}) or {}
-                chosen = self.get_selected_type_chart_type()
-                img_buf = create_plot_image('Type distribution', type_dist, chart_type=chosen, width_inches=8, height_inches=4, dpi=200, logger_fn=self.log)
-                pil = _ensure_bytes_and_open(img_buf)
-                if pil:
-                    iw, ih = pil.size
-                    max_w_pts = 440.0
-                    draw_w = max_w_pts
-                    draw_h = (ih / iw) * draw_w
-                    if draw_h > (y - 72):
-                        p.showPage()
-                        y = H - 72
-                    img_buf.seek(0)
-                    p.drawImage(ImageReader(img_buf), 72, y - draw_h, width=draw_w, height=draw_h)
-                    y -= (draw_h + 12)
-                    self.log("Embedded overview chart")
+                r = requests.get(url, headers=self.headers(), stream=True, timeout=30)
+                if r.status_code == 200:
+                    path, _ = QFileDialog.getSaveFileName(self, "Save PDF", f"report_dataset_{self.current_dataset_id}.pdf", "PDF Files (*.pdf)")
+                    if path:
+                        with open(path, 'wb') as fh:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                fh.write(chunk)
+                        QMessageBox.information(self, "Saved", f"Saved PDF to {path}")
+                        self.log(f"Saved server PDF to {path}", level="success")
                 else:
-                    self.log("Overview image invalid; skipped embedding")
-                    y -= 10
-            except Exception as e:
-                self.log(f"Failed to embed overview chart: {e}")
-                y -= 10
+                    QMessageBox.critical(self, "Failed", f"{r.status_code}: {r.text}")
+                    self.log(f"Failed to download server PDF: {r.status_code}", level="error")
+            except requests.exceptions.RequestException as e:
+                QMessageBox.critical(self, "Error", str(e))
+                self.log(f"Server PDF request error: {e}", level="error")
+            finally:
+                QApplication.restoreOverrideCursor()
+            return
 
-        # ANALYSIS (uses per-card selection)
-        if include_analysis:
-            per_type = (self.current_summary or {}).get('per_type_averages', {}) or {}
-            for pname in list(self.analysis_params_order):
-                vals = per_type.get(pname)
-                if (not vals or len(vals) == 0) and pname in self.param_cards:
-                    vals = getattr(self.param_cards[pname], 'values', {}) or {}
-                if not vals:
-                    self.log(f"No data for analysis {pname}; skipping")
-                    continue
+        # Local PDF generation using Platypus
+        path, _ = QFileDialog.getSaveFileName(self, "Save PDF", "report_desktop.pdf", "PDF Files (*.pdf)")
+        if not path:
+            return
 
-                p.setFont("Helvetica-Bold", 11)
-                p.drawString(72, y, f"Analysis — {pname}")
-                y -= line_height
+        # build analysis_chart_types mapping from current cards' selected chart types
+        analysis_chart_types = {}
+        for pname, card in self.param_cards.items():
+            try:
+                analysis_chart_types[pname] = card.chart_select.currentText()
+            except Exception:
+                analysis_chart_types[pname] = 'bar'
 
-                ct = 'bar'
-                if pname in self.param_cards:
-                    try:
-                        card_ct = getattr(self.param_cards[pname], 'chart_select', None)
-                        if card_ct is not None:
-                            ct = card_ct.currentText()
-                    except Exception:
-                        pass
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            generate_nice_pdf(
+                path=path,
+                summary=self.current_summary or {},
+                preview_rows=self.current_preview or [],
+                dataset_id=self.current_dataset_id,
+                include_summary=include_summary,
+                include_type_chart=include_type_chart,
+                include_analysis=include_analysis,
+                include_preview=include_preview,
+                analysis_params_order=self.analysis_params_order,
+                create_plot_image_fn=create_plot_image,
+                overview_chart_choice=self.overview_chart_select.currentText(),
+                analysis_chart_types=analysis_chart_types,
+                logger_fn=self.log
+            )
+            QMessageBox.information(self, "Saved", f"Saved PDF to {path}")
+            self.log(f"Saved local PDF to {path}", level="success")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to generate PDF: {e}")
+            self.log("PDF error: " + str(e), level="error")
+            self.log(traceback.format_exc(), level="error")
+        finally:
+            QApplication.restoreOverrideCursor()
 
-                try:
-                    img_buf = create_plot_image(f"{pname} (per-type avg)", vals, chart_type=ct, width_inches=8.5, height_inches=4.0, dpi=220, logger_fn=self.log)
-                    pil = _ensure_bytes_and_open(img_buf)
-                    if pil:
-                        iw, ih = pil.size
-                        max_w_pts = 460.0
-                        draw_w = max_w_pts
-                        draw_h = (ih / iw) * draw_w
-                        if draw_h > (y - 72):
-                            p.showPage()
-                            y = H - 72
-                        img_buf.seek(0)
-                        p.drawImage(ImageReader(img_buf), 72, y - draw_h, width=draw_w, height=draw_h)
-                        y -= (draw_h + 12)
-                        self.log(f"Embedded analysis chart for {pname} (type={ct})")
-                    else:
-                        self.log(f"Analysis image invalid for {pname}; skipped")
-                        y -= 10
-                except Exception as e:
-                    self.log(f"Failed embedding analysis chart {pname}: {e}")
-                    y -= 20
-
-        # PREVIEW rows
-        if include_preview and self.current_preview:
-            preview = self.current_preview or []
-            if isinstance(preview, list) and len(preview) > 0:
-                cols = list(preview[0].keys())[:5]
-                p.setFont("Helvetica-Bold", 11)
-                p.drawString(72, y, "Preview (first rows)")
-                y -= line_height
-                p.setFont("Helvetica", 9)
-                x = 72
-                col_w = (W - 144) / max(1, len(cols))
-                for c in cols:
-                    p.drawString(x, y, str(c)[:18])
-                    x += col_w
-                y -= line_height
-                for row in preview[:8]:
-                    if y < 90:
-                        p.showPage()
-                        y = H - 72
-                    x = 72
-                    for c in cols:
-                        txt = str(row.get(c, ''))[:18]
-                        p.drawString(x, y, txt)
-                        x += col_w
-                    y -= line_height
-
-        p.showPage()
-        p.save()
-        buf_out.seek(0)
-        with open(path, 'wb') as out_f:
-            out_f.write(buf_out.read())
-
-        QMessageBox.information(self, "Saved", f"Saved PDF to {path}")
-
-    except Exception as e:
-        QMessageBox.critical(self, "Error", f"Failed to generate PDF: {e}")
-        self.log("PDF error: " + str(e))
-        self.log(traceback.format_exc())
-
-# attach the method to DesktopApp class
-DesktopApp.handle_download_pdf_click = handle_download_pdf_click
-
-# ---------- main / run ----------
+# ---------- main ----------
 def main():
     app = QApplication(sys.argv)
     font = app.font()
