@@ -7,23 +7,38 @@ TokenAuth is left available as an optional compatibility path (comment/uncomment
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8usg*p#v%^gs%ud1ta==fsh3y*5696810(#3dyzols^%_s-*uy'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-8usg*p#v%^gs%ud1ta==fsh3y*5696810(#3dyzols^%_s-*uy')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# For local LAN testing add your machine IP here.
+# Example: ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.1.42']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Media files (uploaded CSVs etc.)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# CORS (development convenience — tighten for production)
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS — prefer explicit origins for dev testing on phone.
+# If you want to allow everything during quick debugging set CORS_ALLOW_ALL_ORIGINS = True
+# but it's safer to list the React dev server origins you use.
+# Example: add your machine LAN IP port where React serves (usually 3000).
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    # Add your machine LAN address when testing from phone:
+    # "http://192.168.1.42:3000",
+]
+
+# Allow credentials only if you use cookie/session authentication.
+CORS_ALLOW_CREDENTIALS = False
 
 # Application definition
 INSTALLED_APPS = [
@@ -130,7 +145,21 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# -----------------------------------------------------------------------------
+# Development convenience:
+# If you want to quickly enable ALL origins while debugging, set:
+# CORS_ALLOW_ALL_ORIGINS = True
+# (But prefer adding the specific origin like "http://192.168.1.42:3000")
+
+# ----------------------------------------------------------------------------- 
+# Recommended development cookie settings (not required for JWT flow)
+# ----------------------------------------------------------------------------- 
+SESSION_COOKIE_SAMESITE = None
+CSRF_COOKIE_SAMESITE = None
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+# ----------------------------------------------------------------------------- 
+
+# ----------------------------------------------------------------------------- 
 # Notes:
 # - If you enable TokenAuthentication (uncomment the TokenAuthentication line above),
 #   make sure 'rest_framework.authtoken' is present in INSTALLED_APPS (it is),

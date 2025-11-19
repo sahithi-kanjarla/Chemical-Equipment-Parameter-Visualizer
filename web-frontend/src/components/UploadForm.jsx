@@ -65,7 +65,7 @@ export default function UploadForm({ onUploaded, disabled = false }) {
           </div>
         </form>
       </div>
-      <DataPreviewWidget data={uploadedData} loading={loading} />
+      
     </>
   );
 }

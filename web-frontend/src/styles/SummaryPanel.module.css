@@ -1,3 +1,8 @@
+/* src/styles/SummaryPanel.module.css
+   Full stylesheet (yours + additions so Chart.js charts are reliably responsive)
+*/
+
+/* Base card */
 .card {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 12px;
@@ -57,7 +62,7 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
-/* Chart type selector */
+/* Chart type selector (kept for legacy if used elsewhere) */
 .chartSelector {
   display: flex;
   align-items: center;
@@ -220,6 +225,71 @@ ul li:hover {
   font-weight: 500;
 }
 
+/* Chart section wrapper */
+.chartSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Responsive chart wrapper — ensures TypeChart canvas fills parent */
+.chartWrapper {
+  width: 100%;
+  height: 360px;            /* desktop default height */
+  position: relative;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: inset 0 0 0 rgba(0,0,0,0);
+}
+
+/* Force Chart.js canvas to fill the wrapper for all chart types */
+.chartWrapper > canvas,
+.chartSection > canvas,
+.tableSection > canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Make sure charts inside TypeChart or other components that use .chartWrapper will scale */
+.chartResponsiveInner {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mobile / tablet sizing for charts */
+@media (max-width: 1023px) {
+  .chartWrapper {
+    height: 280px;
+  }
+}
+
+@media (max-width: 639px) {
+  .chartWrapper {
+    height: 220px;
+  }
+}
+
+/* Table section styling */
+.tableSection {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.tableSection strong {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #333;
+  display: block;
+  margin-bottom: 16px;
+}
+
 /* Tablet (640px - 1023px) */
 @media (min-width: 640px) and (max-width: 1023px) {
   .card {
@@ -356,24 +426,10 @@ ul li:hover {
   }
 }
 
-.chartSection {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.tableSection {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.tableSection strong {
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #333;
-  display: block;
-  margin-bottom: 16px;
+/* Accessibility: focus states */
+.btnPrimary:focus,
+.select:focus {
+  outline: 3px solid rgba(37, 99, 235, 0.12);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
