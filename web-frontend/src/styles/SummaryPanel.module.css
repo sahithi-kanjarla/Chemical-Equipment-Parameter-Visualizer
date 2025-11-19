@@ -1,0 +1,379 @@
+.card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(15, 20, 30, 0.06);
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 2px solid #e0e0e0;
+  font-family: Inter, sans-serif;
+  color: #111827;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 12px 30px rgba(15, 20, 30, 0.12);
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #111827;
+}
+
+/* Button */
+.btnPrimary {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+  transition: all 0.3s ease;
+}
+
+.btnPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
+
+.btnPrimary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* Chart type selector */
+.chartSelector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.chartSelector:hover {
+  background: #efefef;
+}
+
+.chartSelector label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.select {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 2px solid #2563eb;
+  background: white;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select:hover {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.select:focus {
+  outline: none;
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.smallNote {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Summary row */
+.statsRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #2563eb;
+  transition: all 0.3s ease;
+}
+
+.statsRow:hover {
+  background: #f0f0f0;
+  padding-left: 16px;
+}
+
+.statsRow strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.statsRow span {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+/* Lists */
+ul {
+  margin: 0 0 12px 16px;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+ul li {
+  list-style-type: disc;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+  padding-left: 8px;
+}
+
+ul li:hover {
+  color: #2563eb;
+  padding-left: 12px;
+}
+
+/* Preview table */
+.tableWrapper {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.tableTitle {
+  font-weight: 700;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #111827;
+}
+
+.table {
+  width: 100%;
+  font-size: 0.85rem;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table th,
+.table td {
+  padding: 12px 10px;
+  border: 1px solid #e0e0e0;
+}
+
+.table th {
+  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.table tbody tr {
+  transition: all 0.3s ease;
+}
+
+.table tbody tr:hover {
+  background: #f5f5f5;
+  box-shadow: inset 0 0 10px rgba(37, 99, 235, 0.1);
+}
+
+.table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.noPreview {
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Tablet (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .card {
+    padding: 18px;
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .btnPrimary {
+    padding: 10px 18px;
+    font-size: 0.85rem;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .statsRow {
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .table {
+    font-size: 0.82rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 8px;
+  }
+}
+
+/* Mobile (320px - 639px) */
+@media (max-width: 639px) {
+  .card {
+    padding: 14px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+  }
+
+  .title {
+    font-size: 0.95rem;
+  }
+
+  .btnPrimary {
+    padding: 9px 16px;
+    font-size: 0.8rem;
+    width: 100%;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .statsRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px;
+    border-left-width: 3px;
+  }
+
+  .statsRow:hover {
+    padding-left: 12px;
+  }
+
+  .chartSelector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .chartSelector label {
+    font-size: 0.85rem;
+  }
+
+  .select {
+    width: 100%;
+    padding: 10px;
+    font-size: 0.8rem;
+  }
+
+  .table {
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+
+  .table th,
+  .table td {
+    padding: 6px 4px;
+  }
+
+  .tableWrapper {
+    margin-top: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tableTitle {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+
+  .noPreview {
+    padding: 12px;
+    font-size: 0.8rem;
+  }
+
+  ul {
+    margin: 0 0 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  ul li {
+    margin-bottom: 6px;
+  }
+
+  .chartSection,
+  .tableSection {
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+
+  .tableSection strong {
+    font-size: 0.9rem;
+  }
+}
+
+.chartSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.tableSection {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.tableSection strong {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #333;
+  display: block;
+  margin-bottom: 16px;
+}

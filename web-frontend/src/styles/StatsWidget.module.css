@@ -1,0 +1,228 @@
+.widgetContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.totalEquipmentCard {
+  background: #f0f6ff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.totalEquipmentCard:hover {
+  background: #e6f0ff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+/* Alternative styling for total cards */
+.totalRecordsCard {
+  background: #f0f6ff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.totalRecordsCard:hover {
+  background: #e6f0ff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.totalLabel {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.totalValue {
+  font-size: 36px;
+  font-weight: 700;
+  color: #007bff;
+}
+
+.twoColumnLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.statsCard {
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.statsCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: white;
+}
+
+.cardLabel {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.averagesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avgLine {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.avgKey {
+  color: #555;
+  font-weight: 600;
+}
+
+.avgVal {
+  color: #007bff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.missingList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missingLine {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.missingKey {
+  color: #555;
+  font-weight: 600;
+}
+
+.missingVal {
+  color: #dc3545;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* Tablet (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .twoColumnLayout {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .totalEquipmentCard {
+    padding: 22px;
+  }
+
+  .totalValue {
+    font-size: 34px;
+  }
+
+  .statsCard {
+    padding: 15px;
+  }
+
+  .avgLine,
+  .missingLine {
+    font-size: 12px;
+    padding: 7px;
+  }
+
+  .avgVal,
+  .missingVal {
+    font-size: 13px;
+  }
+}
+
+/* Mobile (320px - 639px) */
+@media (max-width: 639px) {
+  .widgetContainer {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .twoColumnLayout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .totalEquipmentCard {
+    padding: 16px;
+  }
+
+  .totalLabel {
+    font-size: 11px;
+    margin-bottom: 10px;
+  }
+
+  .totalValue {
+    font-size: 28px;
+  }
+
+  .statsCard {
+    padding: 12px;
+  }
+
+  .cardLabel {
+    font-size: 11px;
+    margin-bottom: 10px;
+  }
+
+  .avgLine,
+  .missingLine {
+    font-size: 11px;
+    padding: 6px;
+  }
+
+  .avgKey,
+  .missingKey {
+    font-size: 11px;
+  }
+
+  .avgVal,
+  .missingVal {
+    font-size: 12px;
+  }
+}

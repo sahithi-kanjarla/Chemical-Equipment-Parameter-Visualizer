@@ -1,0 +1,148 @@
+.uploadContainer {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.uploadContainer:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.uploadTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fileInputWrapper {
+  margin-bottom: 16px;
+}
+
+.fileInput {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px dashed #007bff;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.fileInput:hover:not(:disabled) {
+  border-color: #ff8c00;
+  background: #fff8f0;
+}
+
+.fileInput:focus {
+  outline: none;
+  border-color: #ff8c00;
+  box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.1);
+}
+
+.fileInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.uploadButtonContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.uploadButton {
+  padding: 12px 24px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.uploadButton:hover:not(:disabled) {
+  background: #0056b3;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.uploadButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.uploadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Tablet (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .uploadContainer {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .uploadTitle {
+    font-size: 16px;
+  }
+
+  .fileInput {
+    padding: 11px 13px;
+    font-size: 13px;
+  }
+
+  .uploadButton {
+    padding: 11px 22px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Mobile (320px - 639px) */
+@media (max-width: 639px) {
+  .uploadContainer {
+    padding: 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .uploadTitle {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .fileInputWrapper {
+    margin-bottom: 12px;
+  }
+
+  .fileInput {
+    padding: 10px 12px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+
+  .uploadButtonContainer {
+    gap: 10px;
+  }
+
+  .uploadButton {
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    border-radius: 5px;
+  }
+}

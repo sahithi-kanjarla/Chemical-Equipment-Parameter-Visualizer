@@ -1,41 +1,44 @@
 // src/App.js
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import api, { setAuthToken } from './api';
+import api, { login as apiLogin, logout as apiLogout, getAccessToken, setAccessToken } from './api';
 import UploadForm from './components/UploadForm';
 import SummaryPanel from './components/SummaryPanel';
 import TypeChart from './components/TypeChart';
 import HistoryPanel from './components/HistoryPanel';
 import ParameterAnalysisChart from './components/ParameterAnalysisChart';
+import Header from './components/Header';
+import LoginPanel from './components/LoginPanel';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [accessToken, setTokenState] = useState(getAccessToken() || null);
+  const [username, setUsername] = useState(null);
+
   const [currentSummary, setCurrentSummary] = useState(null);
   const [currentDatasetId, setCurrentDatasetId] = useState(null);
-  const [chartType, setChartType] = useState('bar');
+  const [overviewChartType, setOverviewChartType] = useState('bar');
+  const [analysisChartTypes, setAnalysisChartTypes] = useState({ Flowrate: 'bar', Pressure: 'bar', Temperature: 'bar' });
+  const [removedCharts, setRemovedCharts] = useState(new Set());
   const [previewRows, setPreviewRows] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'analysis'
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    setAuthToken(token);
-    if (token) localStorage.setItem('token', token);
-    else localStorage.removeItem('token');
-  }, [token]);
+    if (accessToken) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      setTokenState(accessToken);
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+    }
+  }, [accessToken]);
 
   const onUploaded = (data) => {
-    console.log('onUploaded called with:', data);
-    if (!data) {
-      setCurrentSummary(null);
-      setCurrentDatasetId(null);
-      setPreviewRows([]);
-      return;
-    }
+    if (!data) return;
     setCurrentSummary(data.summary || null);
     setCurrentDatasetId(data.id || (data.object && data.object.id) || null);
     setPreviewRows(Array.isArray(data.preview_rows) ? data.preview_rows : []);
-    // switch to overview so user sees summary/chart after upload
     setActiveTab('overview');
+    setRemovedCharts(new Set());
   };
 
   const loadSummaryById = async (id) => {
@@ -43,89 +46,108 @@ function App() {
       const res = await api.get(`summary/${id}/`);
       const data = res.data || {};
       const summary = data.summary || data;
-      const preview =
-        Array.isArray(data.preview_rows) ? data.preview_rows :
-        Array.isArray(data.previewRows) ? data.previewRows : [];
+      const preview = Array.isArray(data.preview_rows) ? data.preview_rows : (Array.isArray(data.previewRows) ? data.previewRows : []);
       setCurrentSummary(summary);
       setCurrentDatasetId(id);
       setPreviewRows(preview);
       setActiveTab('overview');
+      setRemovedCharts(new Set());
     } catch (err) {
       alert(err?.response?.data || err.message);
     }
   };
 
-  const handleTokenSet = () => {
-    alert('Token saved (for this browser). Now you can upload and view history.');
+  const handleLogin = async (u, p) => {
+    try {
+      const tokens = await apiLogin(u, p);
+      setTokenState(tokens.access);
+      setUsername(u);
+    } catch (err) {
+      alert('Login failed: ' + (err?.response?.data?.detail || err.message));
+    }
+  };
+  const handleLogout = () => {
+    apiLogout();
+    setTokenState(null);
+    setUsername(null);
+    setCurrentSummary(null);
+    setCurrentDatasetId(null);
+    setPreviewRows([]);
+    setRemovedCharts(new Set());
   };
 
+  function updateAnalysisChartType(param, newType) {
+    setAnalysisChartTypes(prev => ({ ...prev, [param]: newType }));
+  }
+  function removeAnalysisChart(param) {
+    setRemovedCharts(prev => new Set(Array.from(prev).concat([param])));
+  }
+  function restoreAnalysisChart(param) {
+    setRemovedCharts(prev => {
+      const s = new Set(Array.from(prev));
+      s.delete(param);
+      return s;
+    });
+  }
+
   return (
-    <div className="container my-4">
-      <h2>Chemical Equipment Parameter Visualizer — Web</h2>
-
-      <div className="card p-3 mb-3">
-        <div className="row g-2">
-          <div className="col-md-8">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Enter API token (Token string only)"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-            />
-          </div>
-          <div className="col-md-4">
-            <button className="btn btn-success w-100" onClick={handleTokenSet}>Save Token</button>
-          </div>
-          <div className="col-12 mt-2">
-            <small className="text-muted">Get a token from /api-token-auth/ or Django admin (Tokens).</small>
-          </div>
+    <>
+      {accessToken && <Header username={username} onLogout={handleLogout} />}
+      
+      {!accessToken ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+          <LoginPanel onLogin={handleLogin} />
         </div>
-      </div>
+      ) : (
+        <div className="container my-4">
+          <div className="row">
+            <div className="col-lg-4">
+              <UploadForm onUploaded={onUploaded} disabled={!accessToken} />
+              <HistoryPanel onSelect={loadSummaryById} />
+            </div>
 
-      <div className="row">
-        <div className="col-lg-4">
-          <UploadForm onUploaded={onUploaded} />
-          <HistoryPanel onSelect={loadSummaryById} />
-        </div>
-
-        <div className="col-lg-8">
-          {/* Tabs */}
-          <ul className="nav nav-tabs mb-3">
-            <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-            </li>
-            <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'analysis' ? 'active' : ''}`} onClick={() => setActiveTab('analysis')}>Analysis</button>
-            </li>
-          </ul>
+            <div className="col-lg-8">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <ul className="nav nav-tabs">
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'analysis' ? 'active' : ''}`} onClick={() => setActiveTab('analysis')}>Analysis</button>
+              </li>
+            </ul>
+          </div>
 
           {activeTab === 'overview' && (
             <>
               <SummaryPanel
                 summary={currentSummary}
                 datasetId={currentDatasetId}
-                chartType={chartType}
-                setChartType={setChartType}
+                chartType={overviewChartType}
+                setChartType={setOverviewChartType}
                 previewRows={previewRows}
-              />
-              <TypeChart
-                distribution={currentSummary?.type_distribution}
-                summary={currentSummary}
-                chartType={chartType}
+                analysisChartTypes={analysisChartTypes}
               />
             </>
           )}
 
           {activeTab === 'analysis' && (
             <>
-              <ParameterAnalysisChart summary={currentSummary} />
-              {/* future analysis components (correlation, scatter, trend) go here */}
+              <ParameterAnalysisChart
+                summary={currentSummary}
+                analysisChartTypes={analysisChartTypes}
+                onChangeChartType={updateAnalysisChartType}
+                onRemoveChart={removeAnalysisChart}
+                removedCharts={Array.from(removedCharts)}
+                onRestoreChart={restoreAnalysisChart}
+              />
             </>
           )}
         </div>
       </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }
 

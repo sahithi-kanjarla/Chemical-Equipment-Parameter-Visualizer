@@ -4,10 +4,16 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// AuthProvider from the AuthContext we discussed earlier.
+// Make sure you created src/auth/AuthContext.jsx (or update the path if you placed it elsewhere).
+import { AuthProvider } from './auth/AuthContext';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>
 );
 

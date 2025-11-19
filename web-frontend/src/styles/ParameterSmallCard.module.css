@@ -1,0 +1,181 @@
+.cardContainer {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: all 0.2s ease;
+  position: relative;
+  min-height: 280px;
+  border: 1px solid #e0e0e0;
+}
+
+.cardContainer:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.controlArea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chartTypeSelect {
+  padding: 8px 12px;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  background: white;
+  color: #007bff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.chartTypeSelect:hover {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+}
+
+.chartTypeSelect:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.removeButton {
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(255, 107, 107, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.removeButton:hover {
+  background: linear-gradient(135deg, #ee5a6f 0%, #d63031 100%);
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
+}
+
+.removeButton:active {
+  transform: translateY(0);
+}
+
+.chartContainer {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.chartWrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.errorMessage {
+  color: #d32f2f;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Tablet (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .cardContainer {
+    min-height: 260px;
+    padding: 18px;
+  }
+
+  .cardTitle {
+    font-size: 15px;
+  }
+
+  .chartTypeSelect {
+    min-width: 90px;
+    font-size: 12px;
+  }
+
+  .removeButton {
+    font-size: 13px;
+  }
+
+  .chartContainer {
+    height: 170px;
+  }
+}
+
+/* Mobile (320px - 639px) */
+@media (max-width: 639px) {
+  .cardContainer {
+    min-height: 220px;
+    padding: 14px;
+    border-radius: 8px;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .cardTitle {
+    font-size: 13px;
+  }
+
+  .controlArea {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .chartTypeSelect {
+    flex: 1;
+    min-width: auto;
+    font-size: 11px;
+    padding: 7px 10px;
+  }
+
+  .removeButton {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .chartContainer {
+    height: 140px;
+    padding: 8px;
+  }
+
+  .errorMessage {
+    font-size: 12px;
+    padding: 16px;
+  }
+}

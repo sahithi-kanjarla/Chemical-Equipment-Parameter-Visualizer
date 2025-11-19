@@ -1,10 +1,13 @@
 // src/components/UploadForm.jsx
 import React, { useState } from 'react';
 import api from '../api';
+import DataPreviewWidget from './DataPreviewWidget';
+import styles from '../styles/UploadForm.module.css';
 
-export default function UploadForm({ onUploaded }) {
+export default function UploadForm({ onUploaded, disabled = false }) {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploadedData, setUploadedData] = useState(null);
 
   const handleFileChange = (e) => {
     setFile(e.target.files && e.target.files[0] ? e.target.files[0] : null);
@@ -16,24 +19,21 @@ export default function UploadForm({ onUploaded }) {
       alert('Please choose a CSV file first.');
       return;
     }
-
     const formData = new FormData();
     formData.append('file', file);
-
     try {
       setLoading(true);
       const res = await api.post('upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
       });
-
-      // IMPORTANT: call onUploaded with the whole response data (includes preview_rows)
       if (onUploaded) onUploaded(res.data);
-
-      // Optionally show a success message
+      setUploadedData(res.data);
       alert('Upload successful — summary loaded.');
       setFile(null);
-      // reset file input (if you want, remove any selected file UI)
-      // document.getElementById('upload-input').value = '';
+      // clear file input visually (if necessary)
+      const el = document.getElementById('upload-input');
+      if (el) el.value = '';
     } catch (err) {
       console.error('Upload failed', err);
       const msg = err?.response?.data?.detail || err?.message || 'Upload failed';
@@ -44,24 +44,28 @@ export default function UploadForm({ onUploaded }) {
   };
 
   return (
-    <div className="card p-3 mb-3">
-      <h6>Upload CSV</h6>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-2">
-          <input
-            id="upload-input"
-            type="file"
-            accept=".csv,text/csv"
-            className="form-control form-control-sm"
-            onChange={handleFileChange}
-          />
-        </div>
-        <div className="d-grid gap-2">
-          <button type="submit" className="btn btn-primary btn-sm" disabled={loading}>
-            {loading ? 'Uploading…' : 'Upload CSV'}
-          </button>
-        </div>
-      </form>
-    </div>
+    <>
+      <div className={styles.uploadContainer}>
+        <h6 className={styles.uploadTitle}>Upload CSV</h6>
+        <form onSubmit={handleSubmit}>
+          <div className={styles.fileInputWrapper}>
+            <input
+              id="upload-input"
+              type="file"
+              accept=".csv,text/csv"
+              className={styles.fileInput}
+              onChange={handleFileChange}
+              disabled={disabled}
+            />
+          </div>
+          <div className={styles.uploadButtonContainer}>
+            <button type="submit" className={styles.uploadButton} disabled={loading || disabled}>
+              {loading ? 'Uploading…' : 'Upload CSV'}
+            </button>
+          </div>
+        </form>
+      </div>
+      <DataPreviewWidget data={uploadedData} loading={loading} />
+    </>
   );
 }

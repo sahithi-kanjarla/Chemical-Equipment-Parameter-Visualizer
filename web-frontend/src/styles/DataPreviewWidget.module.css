@@ -1,0 +1,403 @@
+.widgetContainer {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  padding: 24px;
+  margin-top: 20px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.widgetTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 20px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #007bff;
+  display: inline-block;
+}
+
+.loadingSpinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #666;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.statCard:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 8px;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #007bff;
+}
+
+.tableSection {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead {
+  background: #f9f9f9;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  color: #333;
+  background: #f9f9f9;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background: #f0f6ff;
+}
+
+.table tbody td {
+  padding: 10px 16px;
+  color: #555;
+}
+
+.moreText {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.statsSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.avgGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.avgItem {
+  background: #f9f9f9;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.avgItem:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+.avgLabel {
+  font-weight: 700;
+  color: #555;
+  margin-right: 8px;
+}
+
+.avgValue {
+  font-weight: 700;
+  color: #007bff;
+  font-size: 16px;
+}
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.typeItem {
+  background: #f9f9f9;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.typeItem:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+.typeLabel {
+  font-weight: 700;
+  color: #555;
+  margin-right: 8px;
+}
+
+.typeValue {
+  font-weight: 700;
+  color: #007bff;
+  font-size: 16px;
+}
+
+/* Tablet (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .widgetContainer {
+    padding: 20px;
+    margin-top: 16px;
+  }
+
+  .widgetTitle {
+    font-size: 16px;
+  }
+
+  .loadingSpinner {
+    padding: 30px 16px;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .statCard {
+    padding: 14px;
+  }
+
+  .statLabel {
+    font-size: 11px;
+  }
+
+  .statValue {
+    font-size: 24px;
+  }
+
+  .sectionTitle {
+    font-size: 13px;
+  }
+
+  .avgGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+  }
+
+  .typeGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+  }
+
+  .table {
+    font-size: 12px;
+  }
+
+  .table thead th {
+    padding: 10px 14px;
+  }
+
+  .table tbody td {
+    padding: 9px 14px;
+  }
+}
+
+/* Mobile (320px - 639px) */
+@media (max-width: 639px) {
+  .widgetContainer {
+    padding: 14px;
+    margin-top: 12px;
+    border-radius: 8px;
+  }
+
+  .widgetTitle {
+    font-size: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+  }
+
+  .loadingSpinner {
+    padding: 24px 12px;
+    gap: 10px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .statCard {
+    padding: 12px;
+  }
+
+  .statLabel {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .statValue {
+    font-size: 20px;
+  }
+
+  .tableSection {
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .moreText {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .avgGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .avgItem {
+    padding: 10px 12px;
+  }
+
+  .avgLabel {
+    font-size: 12px;
+  }
+
+  .avgValue {
+    font-size: 14px;
+  }
+
+  .typeGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .typeItem {
+    padding: 10px 12px;
+  }
+
+  .typeLabel {
+    font-size: 12px;
+  }
+
+  .typeValue {
+    font-size: 14px;
+  }
+
+  .tableWrapper {
+    border-radius: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    font-size: 11px;
+  }
+
+  .table thead th {
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .table tbody td {
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+}

@@ -1,5 +1,9 @@
 .App {
   text-align: center;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .App-logo {
@@ -34,5 +38,73 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Responsive Container */
+.container-responsive {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* Main Content Area */
+.contentWrapper {
+  flex: 1;
+  width: 100%;
+  padding: 20px 0;
+}
+
+/* Responsive Grid Layout */
+.gridContainer {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Mobile Styles (320px - 639px) */
+@media (max-width: 639px) {
+  .container-responsive {
+    padding: 0 12px;
+  }
+
+  .contentWrapper {
+    padding: 12px 0;
+  }
+
+  .gridContainer {
+    gap: 16px;
+  }
+}
+
+/* Tablet Styles (640px - 1023px) */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .container-responsive {
+    padding: 0 16px;
+  }
+
+  .contentWrapper {
+    padding: 16px 0;
+  }
+
+  .gridContainer {
+    gap: 20px;
+  }
+}
+
+/* Desktop Styles (1024px+) */
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding: 0 24px;
+  }
+
+  .contentWrapper {
+    padding: 24px 0;
+  }
+
+  .gridContainer {
+    gap: 24px;
   }
 }

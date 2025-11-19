@@ -1,0 +1,337 @@
+.pdfModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pdfModalContent {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.pdfModalHeader {
+  padding: 24px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdfModalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  transition: all 0.3s ease;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.closeButton:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.pdfModalBody {
+  padding: 24px;
+}
+
+.optionGroup {
+  margin-bottom: 20px;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.3s ease;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.optionLabel:hover {
+  background: #f5f5f5;
+  color: #007bff;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #007bff;
+  transition: all 0.3s ease;
+}
+
+.checkbox:hover {
+  transform: scale(1.1);
+}
+
+.chartTypeSelector {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+.chartTypeLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  display: block;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.chartTypeSelect {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chartTypeSelect:hover {
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.chartTypeSelect:focus {
+  outline: none;
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.pdfModalFooter {
+  padding: 20px 24px;
+  border-top: 2px solid #f0f0f0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 12px 24px;
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.downloadButton {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.downloadButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  box-shadow: 0 6px 18px rgba(40, 167, 69, 0.4);
+  transform: translateY(-2px);
+}
+
+.downloadButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+}
+
+.downloadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .pdfModalContent {
+    max-width: 450px;
+    width: 90%;
+  }
+
+  .pdfModalHeader {
+    padding: 20px;
+  }
+
+  .pdfModalBody {
+    padding: 20px;
+  }
+
+  .pdfModalFooter {
+    padding: 16px 20px;
+    gap: 12px;
+  }
+
+  .pdfModalTitle {
+    font-size: 18px;
+  }
+
+  .optionLabel {
+    font-size: 14px;
+  }
+
+  .chartTypeLabel {
+    font-size: 12px;
+  }
+
+  .cancelButton,
+  .downloadButton {
+    padding: 11px 20px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 639px) {
+  .pdfModalOverlay {
+    padding: 12px;
+  }
+
+  .pdfModalContent {
+    max-width: 100%;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 12px;
+  }
+
+  .pdfModalHeader {
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .pdfModalTitle {
+    font-size: 16px;
+  }
+
+  .closeButton {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
+
+  .pdfModalBody {
+    padding: 16px;
+  }
+
+  .optionGroup {
+    margin-bottom: 16px;
+  }
+
+  .optionLabel {
+    font-size: 13px;
+    padding: 8px;
+    margin-bottom: 6px;
+  }
+
+  .checkbox {
+    width: 18px;
+    height: 18px;
+  }
+
+  .chartTypeSelector {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+  }
+
+  .chartTypeLabel {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .chartTypeSelect {
+    padding: 9px 10px;
+    font-size: 13px;
+    border-radius: 5px;
+  }
+
+  .pdfModalFooter {
+    padding: 16px;
+    border-top: 1px solid #e0e0e0;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cancelButton,
+  .downloadButton {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .downloadButton {
+    order: -1;
+  }
+}
