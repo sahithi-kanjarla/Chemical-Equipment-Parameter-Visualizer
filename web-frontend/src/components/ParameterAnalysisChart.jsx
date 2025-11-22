@@ -81,7 +81,7 @@ function SmallChart({ type, labels, data }) {
                 backgroundColor: colors.barBg,
                 borderColor: colors.barBorder,
                 borderWidth: 1,
-                borderRadius: 6
+                borderRadius: 6, 
               },
             ],
           }}
@@ -140,7 +140,9 @@ function SmallChart({ type, labels, data }) {
 
   if (type === 'hist') {
     const vals = Array.isArray(data) ? data : [];
-    if (vals.length === 0) return <div className="text-muted small">No numeric data for histogram.</div>;
+    if (vals.length === 0) {
+      return <div className="text-muted small">No numeric data for histogram.</div>;
+    }
 
     const min = Math.min(...vals);
     const max = Math.max(...vals);
@@ -153,7 +155,9 @@ function SmallChart({ type, labels, data }) {
       counts[idx] += 1;
     });
 
-    const histLabels = counts.map((_, i) => `${(min + i * binSize).toFixed(1)}–${(min + (i + 1) * binSize).toFixed(1)}`);
+    const histLabels = counts.map(
+      (_, i) => `${(min + i * binSize).toFixed(1)}–${(min + (i + 1) * binSize).toFixed(1)}`
+    );
 
     return (
       <ChartWrapper>
@@ -166,6 +170,7 @@ function SmallChart({ type, labels, data }) {
                 backgroundColor: '#FF6B6B',
                 borderColor: '#C92A2A',
                 borderWidth: 1,
+                borderRadius: 0, // sharp bars
               },
             ],
           }}
@@ -191,21 +196,29 @@ export default function ParameterAnalysisChart({
   onRestoreChart = () => {},
 }) {
   const perType = (summary && summary.per_type_averages) || {};
-  const removedSet = Array.isArray(removedCharts) ? new Set(removedCharts) : new Set(removedCharts);
+  const removedSet = Array.isArray(removedCharts)
+    ? new Set(removedCharts)
+    : new Set(removedCharts);
 
   return (
     <div className={styles.chartContainer}>
       <h5 className={styles.chartTitle}>Parameter Analysis</h5>
 
-      <div className={styles.gridWrapper || ''}>
+      <div className={styles.gridWrapper}>
         {PARAMETERS.map((param) => {
           const removed = removedSet.has(param);
+          const titleText = `Analysis - Average ${param} by Type`;
 
           if (removed) {
             return (
               <div key={param} className={styles.removedCard || styles.parameterCard}>
-                <div><strong>{param}</strong> — removed</div>
-                <button className={styles.restoreButton || styles.controlButton} onClick={() => onRestoreChart(param)}>
+                <div>
+                  <strong>{titleText}</strong> — removed
+                </div>
+                <button
+                  className={styles.restoreButton || styles.controlButton}
+                  onClick={() => onRestoreChart(param)}
+                >
                   Restore
                 </button>
               </div>
@@ -242,15 +255,24 @@ export default function ParameterAnalysisChart({
                   onClick={() => onRemoveChart(param)}
                   aria-label={`Remove ${param} chart`}
                 >
-                  {/* simple X icon */}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
 
-              <h6 className={styles.parameterTitle}>{param}</h6>
+              <h6 className={styles.parameterTitle}>{titleText}</h6>
 
               <div className={styles.parameterChartArea}>
                 {labels.length === 0 ? (
