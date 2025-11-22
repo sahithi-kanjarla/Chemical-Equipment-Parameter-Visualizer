@@ -107,13 +107,15 @@ http://localhost:3000/
 ```
 
 📱 Fully responsive on desktop & mobile
-<img width="1355" height="577" alt="image" src="https://github.com/user-attachments/assets/e614d658-d9f0-47e5-b37d-8cb741f06555" />
-<img width="1358" height="578" alt="image" src="https://github.com/user-attachments/assets/7b0b2748-f3a5-4b2c-899c-7c0b20548448" />
 
 
----
+
+---<img width="1355" height="577" alt="Screenshot 2025-11-23 023336" src="https://github.com/user-attachments/assets/9d76f208-7c9d-4750-af75-f5a93ee45df4" />
+
+<img width="1358" height="578" alt="Screenshot 2025-11-23 023541" src="https://github.com/user-attachments/assets/8bd5e7e2-6885-4be5-b6c6-eb7ec854bad5" />
 
 # 🖥 Desktop App Setup (PyQt5)
+
 
 ### Open another **new terminal** (Terminal 3)
 > venv MUST be activated
@@ -188,5 +190,6 @@ Desktop App (Matplotlib):
 | Per-user isolation | ✔ Done |
 
 ---
+
 
 
