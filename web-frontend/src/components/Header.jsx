@@ -1,38 +1,39 @@
 // src/components/Header.jsx
-import React, { useState, useRef, useEffect } from 'react';
-import styles from '../styles/Header.module.css';
+import React, { useState, useRef, useEffect } from "react";
+import styles from "../styles/Header.module.css";
+import { useAuth } from "../auth/AuthContext";
 
-export default function Header({ username, onLogout }) {
+export default function Header() {
+  const { user, logout } = useAuth();                        // ⬅ From context
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Generate avatar with initials
-  const initials = username
-    ? username
-        .split(' ')
+  // initials for avatar
+  const initials = user
+    ? user
+        .split(" ")
         .map((part) => part[0])
-        .join('')
+        .join("")
         .toUpperCase()
         .slice(0, 2)
-    : 'U';
+    : "U";
 
-  const avatarColor = generateColorFromString(username || 'user');
+  const avatarColor = generateColorFromString(user || "user");
 
-  // Close dropdown when clicking outside
+  // close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
     }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
     setShowDropdown(false);
-    onLogout();
+    logout();                                                // ⬅ logout directly
   };
 
   return (
@@ -69,11 +70,13 @@ export default function Header({ username, onLogout }) {
                   {initials}
                 </div>
                 <div className={styles.dropdownUserInfo}>
-                  <span className={styles.dropdownUsername}>{username || 'User'}</span>
-                  <span className={styles.dropdownEmail}>logged in</span>
+                  <span className={styles.dropdownUsername}>{user || "User"}</span>
+                  <span className={styles.dropdownEmail}>Logged in</span>
                 </div>
               </div>
+
               <div className={styles.dropdownDivider}></div>
+
               <button className={styles.dropdownLogout} onClick={handleLogout}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M10 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
@@ -90,17 +93,11 @@ export default function Header({ username, onLogout }) {
   );
 }
 
-// Helper function to generate consistent color from string
+// Generate consistent avatar color
 function generateColorFromString(str) {
   const colors = [
-    '#5B7C99', // Slate Blue
-    '#4A6FA5', // Cerulean
-    '#627BA7', // Steel Blue
-    '#6B5B95', // Muted Purple
-    '#5A7C6B', // Sage Green
-    '#5A7F8C', // Teal
-    '#7B6B5B', // Taupe
-    '#6B7F5B', // Olive
+    "#5B7C99", "#4A6FA5", "#627BA7", "#6B5B95",
+    "#5A7C6B", "#5A7F8C", "#7B6B5B", "#6B7F5B",
   ];
 
   let hash = 0;

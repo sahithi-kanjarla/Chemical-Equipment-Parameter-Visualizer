@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { login } from '../api';
 import styles from '../styles/LoginPanel.module.css';
+import logo from '../assets/logo.png.png'; // <-- import your logo
 
 export default function LoginPanel({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -29,14 +30,10 @@ export default function LoginPanel({ onLogin }) {
   return (
     <div className={styles.loginPageWrapper}>
       <div className={styles.loginCard}>
+
         {/* Logo Section */}
         <div className={styles.logoSection}>
-          <div className={styles.logoIcon}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-          </div>
+          <img src={logo} alt="App Logo" className={styles.logoImage} />
         </div>
 
         {/* Title Section */}
@@ -89,11 +86,6 @@ export default function LoginPanel({ onLogin }) {
             )}
           </button>
         </form>
-
-        {/* Footer */}
-        <p className={styles.footerText}>
-          © 2025 Chemical Equipment Visualizer. All rights reserved.
-        </p>
       </div>
     </div>
   );
