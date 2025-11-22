@@ -108,7 +108,7 @@ http://localhost:3000/
 
 📱 Fully responsive on desktop & mobile
 
-
+<img width="1357" height="576" alt="image" src="https://github.com/user-attachments/assets/c2235a52-8dd5-4a3d-9165-1f1b8700c8ea" />
 
 ---<img width="1355" height="577" alt="Screenshot 2025-11-23 023336" src="https://github.com/user-attachments/assets/9d76f208-7c9d-4750-af75-f5a93ee45df4" />
 
@@ -190,6 +190,7 @@ Desktop App (Matplotlib):
 | Per-user isolation | ✔ Done |
 
 ---
+
 
 
 
