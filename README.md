@@ -1,5 +1,5 @@
 ﻿# Chemical Equipment Parameter Visualizer  
-A hybrid application that allows users to upload engineering datasets in CSV format and visualize analytics through a **React Web Application**, a **PyQt5 Desktop Application**, and a shared **Django REST API Backend**.
+A hybrid application that allows users to upload engineering datasets in CSV format and visualize analytics through a **React Web Application**, a **PyQt5 Desktop Application**,** SQLite Database**, and a shared **Django REST API Backend**.
 
 ---
 
@@ -190,6 +190,7 @@ Desktop App (Matplotlib):
 | Per-user isolation | ✔ Done |
 
 ---
+
 
 
 
