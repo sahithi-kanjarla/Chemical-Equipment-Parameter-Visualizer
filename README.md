@@ -1,40 +1,8 @@
 # Chemical Equipment Parameter Visualizer
 
-A full-stack data visualization application for analyzing chemical equipment datasets through a **React web application** and **PyQt5 desktop application**, powered by a shared **Django REST API** and **SQLite database**.
+A full-stack application for analyzing chemical equipment datasets through a **React web application** and a **PyQt5 desktop application**, powered by a shared Django REST API and SQLite database.
 
-## Tech Stack
-
-**Frontend:** React, JavaScript, CSS, Chart.js
-**Backend:** Django, Django REST Framework
-**Desktop:** PyQt5, Matplotlib
-**Data Processing:** Python, Pandas
-**Database:** SQLite
-**Authentication:** JWT
-
----
-
-## Overview
-
-The Chemical Equipment Parameter Visualizer allows users to upload engineering datasets in CSV format, analyze equipment parameters, visualize the results, and generate downloadable PDF reports.
-
-The application provides two client interfaces — a responsive React web application and a PyQt5 desktop application — connected to a shared Django REST API backend.
-
----
-
-## Key Features
-
-* CSV upload with validation
-* Automated data analysis using Pandas
-* Summary statistics and per-type analysis
-* Interactive data visualization with Chart.js
-* Offline visualization with Matplotlib
-* JWT-based authentication
-* User-specific upload history
-* Per-user data isolation
-* PDF report generation
-* Web and desktop clients using a shared REST API
-
----
+Upload engineering data, explore equipment parameters through visualizations, analyze statistical summaries, and generate downloadable PDF reports.
 
 ## Application Preview
 
@@ -54,61 +22,98 @@ The application provides two client interfaces — a responsive React web applic
 
 ---
 
-## System Workflow
+## Overview
+
+The application allows users to upload engineering datasets in CSV format, analyze chemical equipment parameters, visualize statistical results, and generate PDF reports.
+
+It provides two client interfaces:
+
+- **Web Application:** A responsive React interface with interactive charts and data exploration.
+- **Desktop Application:** A PyQt5 interface with Matplotlib-based data visualization.
+
+Both applications communicate with a shared Django REST API for centralized data processing, authentication, and dataset management.
+
+## Key Features
+
+- CSV upload with data validation.
+- Automated statistical analysis using Pandas.
+- Equipment-type analysis and summary statistics.
+- Interactive charts and data visualization.
+- Separate web and desktop interfaces.
+- JWT-based authentication and user-specific upload history.
+- Per-user data isolation.
+- Downloadable PDF reports.
+
+## Technology Stack
+
+| Component | Technologies |
+|---|---|
+| Web Frontend | React, JavaScript, CSS, Chart.js |
+| Backend | Python, Django, Django REST Framework |
+| Desktop | PyQt5, Matplotlib |
+| Data Processing | Pandas |
+| Database | SQLite |
+| Authentication | JWT |
+
+---
+
+## Architecture
+
+Both client applications communicate with a shared Django REST API, which handles authentication, CSV validation, data processing, and storage.
 
 ```text
-User
- │
- ▼
-JWT Authentication
- │
- ▼
-CSV Upload
- │
- ▼
-Django REST API
- │
- ├── CSV Validation
- ├── Pandas Data Processing
- ├── Statistical Analysis
- └── User-specific Data Storage
- │
- ├───────────────────┐
- ▼                   ▼
-React Web App     PyQt5 Desktop App
- │                   │
-Chart.js           Matplotlib
- │                   │
- └─────────┬─────────┘
-           ▼
-      PDF Reports
+                  ┌──────────────────────┐
+                  │        Users         │
+                  └──────────┬───────────┘
+                             │
+                 ┌───────────┴───────────┐
+                 │                       │
+                 ▼                       ▼
+          React Web App            PyQt5 Desktop
+                 │                       │
+                 └───────────┬───────────┘
+                             │
+                             ▼
+                   Django REST API
+                             │
+                 ┌───────────┴───────────┐
+                 │                       │
+                 ▼                       ▼
+             SQLite DB                Pandas
+                                         │
+                                         ▼
+                                  Data Analysis
+                                         │
+                                         ▼
+                                    PDF Reports
 ```
 
-### Processing Flow
+## System Workflow
 
-1. User authenticates using JWT authentication.
-2. User uploads a CSV file through the web or desktop application.
-3. The Django backend validates and processes the dataset using Pandas.
-4. The backend calculates:
+1. Users authenticate through JWT.
+2. Users upload engineering datasets through either application.
+3. The backend validates the CSV files.
+4. Pandas processes the uploaded dataset.
+5. Statistical metrics and equipment distributions are calculated.
+6. Datasets are associated with the authenticated user.
+7. Results are visualized using Chart.js or Matplotlib.
+8. Users can generate downloadable PDF reports.
 
-   * Total record count
-   * Average flowrate
-   * Average pressure
-   * Average temperature
-   * Equipment type distribution
-   * Per-type averages
-   * Dataset preview
-5. The uploaded dataset is associated with the authenticated user.
-6. Each user can access their last five uploaded datasets.
-7. The web application visualizes the processed data using Chart.js.
-8. The desktop application provides offline visualization using Matplotlib.
-9. Users can generate PDF reports from analyzed or stored datasets.
+### Analysis Metrics
+
+- Total record count
+- Average flowrate
+- Average pressure
+- Average temperature
+- Equipment type distribution
+- Per-type parameter averages
+- Dataset preview
 
 ---
 
 ## Supported Dataset Format
 
-The uploaded CSV file must contain the following columns:
+The uploaded CSV file must contain:
 
 ```text
 Equipment Name
@@ -120,83 +125,28 @@ Temperature
 
 ---
 
-## Application Features
-
-### CSV Upload & Validation
-
-The application validates uploaded CSV files and checks for the required equipment and parameter columns.
-
-### Data Analysis
-
-Uploaded datasets are processed using Pandas to generate:
-
-* Summary statistics
-* Per-type averages
-* Missing-value information
-* Dataset preview
-* Equipment type distribution
-
-### Data Visualization
-
-**Web Application — Chart.js**
-
-* Bar charts
-* Pie charts
-* Line charts
-* Histograms
-* Parameter-based chart selection
-* Chart removal and restoration
-* Responsive layout
-
-**Desktop Application — Matplotlib**
-
-* Offline data visualization
-
-### User-Specific Upload History
-
-* Stores the last five uploads for each user
-* Previously uploaded datasets can be loaded from history
-* User data is isolated through authenticated access
-
-### PDF Report Generation
-
-Users can generate downloadable reports containing:
-
-* Dataset summary
-* Charts
-* Preview tables
-* Analysis results
-
-Reports can be generated from both newly analyzed and previously stored datasets.
-
----
-
 ## Project Structure
 
 ```text
 chemical-visualizer/
 │
-├── api/                         # Django REST API
+├── api/
 │   ├── models.py
 │   ├── views.py
 │   ├── serializers.py
 │   └── urls.py
 │
-├── project/                     # Django project configuration
+├── project/
 │   ├── settings.py
 │   └── urls.py
 │
-├── manage.py                    # Django entry point
+├── manage.py
 │
-├── web-frontend/                # React web application
+├── web-frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   ├── styles/
-│   │   ├── api.js
-│   │   └── App.js
 │   └── package.json
 │
-└── desktop-frontend/            # PyQt5 desktop application
+└── desktop-frontend/
     ├── pyqt_app.py
     └── api_client.py
 ```
@@ -207,11 +157,9 @@ chemical-visualizer/
 
 ### Prerequisites
 
-Make sure the following are installed:
-
-* Python 3.x
-* Node.js
-* npm
+- Python 3.x
+- Node.js
+- npm
 
 ### 1. Clone the Repository
 
@@ -221,8 +169,6 @@ cd Chemical-Equipment-Parameter-Visualizer
 ```
 
 ### 2. Set Up the Backend
-
-Create and activate a Python virtual environment.
 
 **Windows**
 
@@ -238,35 +184,26 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-Install the backend dependencies:
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run database migrations:
+Run migrations and create an admin account:
 
 ```bash
 python manage.py migrate
-```
-
-Create an admin account:
-
-```bash
 python manage.py createsuperuser
 ```
 
-Start the Django development server:
+Start the backend:
 
 ```bash
 python manage.py runserver
 ```
 
-Keep the backend server running while using the web or desktop application.
-
 ### 3. Run the Web Application
-
-Open a new terminal and navigate to the web application:
 
 ```bash
 cd web-frontend
@@ -274,57 +211,17 @@ npm install
 npm start
 ```
 
-The application will be available at:
-
-```text
-http://localhost:3000/
-```
+Available at `http://localhost:3000/`.
 
 ### 4. Run the Desktop Application
 
-Activate the Python virtual environment and install the desktop dependencies:
+Activate the Python virtual environment:
 
 ```bash
 pip install pyqt5 matplotlib requests
-```
-
-Then run:
-
-```bash
 cd desktop-frontend
 python pyqt_app.py
 ```
 
 ---
-
-## Architecture
-
-The application follows a shared-backend architecture where both client applications communicate with the same Django REST API.
-
-```text
-                    ┌────────────────────┐
-                    │       Users        │
-                    └─────────┬──────────┘
-                              │
-                 ┌────────────┴────────────┐
-                 │                         │
-                 ▼                         ▼
-          React Web App             PyQt5 Desktop
-                 │                         │
-                 └────────────┬────────────┘
-                              │
-                              ▼
-                    Django REST API
-                              │
-                 ┌────────────┴────────────┐
-                 │                         │
-                 ▼                         ▼
-             SQLite DB                  Pandas
-                                           │
-                                           ▼
-                                    Data Analysis
-```
-
-
-
 
